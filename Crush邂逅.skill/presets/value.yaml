@@ -1,0 +1,16 @@
+name: value
+display_name: 价值驱动型
+attachment_style: Dismissive Avoidant
+mbti: ESTJ
+relationship_stage: 评估期
+baseline_state:
+  favorability: 24
+  tension: 20
+  neediness: 5
+  frame_control: 30
+  exploration: 18
+  defense_level: 26
+  propulsion: 10
+  attachment_activation: 16
+  trauma_level: 18
+  push_pull_sensitivity: 12

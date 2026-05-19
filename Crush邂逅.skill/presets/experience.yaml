@@ -1,0 +1,16 @@
+name: experience
+display_name: 体验驱动型
+attachment_style: Fearful Avoidant
+mbti: ESFP
+relationship_stage: 拉扯期
+baseline_state:
+  favorability: 42
+  tension: 52
+  neediness: 14
+  frame_control: 20
+  exploration: 60
+  defense_level: 24
+  propulsion: 26
+  attachment_activation: 34
+  trauma_level: 20
+  push_pull_sensitivity: 48

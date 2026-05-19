@@ -1,0 +1,11 @@
+{
+  "cards": [
+    {"key": "favorability", "label": "Favorability"},
+    {"key": "tension", "label": "Tension"},
+    {"key": "neediness", "label": "Neediness"},
+    {"key": "defense_level", "label": "Defense"},
+    {"key": "exploration", "label": "Exploration"},
+    {"key": "frame_control", "label": "FrameControl"}
+  ],
+  "event_tags": ["张力上升", "防御机制触发", "探索欲下降", "吸引力峰值", "框架崩塌风险"]
+}

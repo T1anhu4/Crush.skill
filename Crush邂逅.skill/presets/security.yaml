@@ -1,0 +1,16 @@
+name: security
+display_name: 安全感驱动型
+attachment_style: Secure
+mbti: ISTJ
+relationship_stage: 了解期
+baseline_state:
+  favorability: 30
+  tension: 18
+  neediness: 6
+  frame_control: 26
+  exploration: 24
+  defense_level: 16
+  propulsion: 14
+  attachment_activation: 18
+  trauma_level: 16
+  push_pull_sensitivity: 18
