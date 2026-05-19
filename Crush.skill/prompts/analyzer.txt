@@ -1,0 +1,14 @@
+任务：
+从用户本轮输入中识别以下信号：
+- neediness_score
+- pressure_score
+- authenticity_score
+- playfulness_score
+- stability_score
+- value_signal_score
+- attachment_trigger_score
+
+要求：
+- 分数范围为0到1
+- 输出JSON
+- 给出一条最关键风险提示

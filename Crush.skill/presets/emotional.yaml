@@ -1,0 +1,16 @@
+name: emotional
+display_name: 情感驱动型
+attachment_style: Anxious
+mbti: ENFP
+relationship_stage: 暧昧期
+baseline_state:
+  favorability: 38
+  tension: 34
+  neediness: 8
+  frame_control: 22
+  exploration: 44
+  defense_level: 18
+  propulsion: 20
+  attachment_activation: 36
+  trauma_level: 22
+  push_pull_sensitivity: 40

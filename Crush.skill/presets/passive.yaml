@@ -1,0 +1,16 @@
+name: passive
+display_name: 惯性驱动型
+attachment_style: Dismissive Avoidant
+mbti: INFP
+relationship_stage: 停滞期
+baseline_state:
+  favorability: 18
+  tension: 6
+  neediness: 4
+  frame_control: 10
+  exploration: 8
+  defense_level: 32
+  propulsion: -6
+  attachment_activation: 10
+  trauma_level: 24
+  push_pull_sensitivity: 8

@@ -1,0 +1,43 @@
+{
+  "name": "crush_skill",
+  "description": "Relationship Simulation Engine with dynamic state machine, memory, reality import and postmortem replay.",
+  "entry": "execute.py",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": [
+          "quick_start",
+          "custom_sandbox",
+          "reality_import",
+          "chat_turn",
+          "postmortem",
+          "timeline_append",
+          "dashboard"
+        ]
+      },
+      "session_id": {
+        "type": "string",
+        "description": "Conversation/session key for persistent memory"
+      },
+      "message": {
+        "type": "string",
+        "description": "User input for chat_turn"
+      },
+      "config": {
+        "type": "object",
+        "description": "Mode parameters for quick_start/custom_sandbox"
+      },
+      "profile": {
+        "type": "object",
+        "description": "Seed profile for reality_import"
+      },
+      "source_text": {
+        "type": "string",
+        "description": "Reality relationship text for personality reconstruction"
+      }
+    },
+    "required": ["action"]
+  }
+}
