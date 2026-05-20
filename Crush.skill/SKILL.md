@@ -1,123 +1,126 @@
 ---
 name: crush-skill
-description: Relationship Persona Simulation Engine. Build a digital twin of someone from chat history or custom configuration. 5-layer personality model (hard rules, identity, expression, emotional patterns, relational context), nonlinear state dynamics, LLM-powered dialogue analysis. Use when: (1) Importing chat records to reconstruct someone's personality, (2) Simulating romantic interactions for learning, (3) Analyzing relationship dynamics, (4) Running postmortem to understand what went wrong, (5) Custom sandbox with full persona configuration.
+description: Relationship Persona Simulation Engine. Build a digital twin from chat history or custom 5-layer persona. Slash commands: /start-crush, /custom-crush, /import-chats, /chat, /crush-dashboard, /crush-postmortem, /let-go, /list-crushes, /crush-llm. For dating-coaching, relationship analysis, chat record import, personality simulation.
 license: MIT
-compatibility: Requires python3.10+, pyyaml. Optional: openai (for LLM dialogue analysis)
+compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.0.0"
-  author: Crush.skill contributors
-  platforms:
-    - claude_code
-    - openclaw
-    - qwenpaw
-    - workbuddy
-    - codex
-    - cursor
-  tags:
-    - relationship
-    - persona
-    - simulation
-    - psychology
-    - dating
-    - coaching
-allowed-tools: Bash(python3:*) Bash(git:*) Read
+  version: "2.1.0"
+  author: T1anhu4
+  platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
+  tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
+allowed-tools: Bash(python3:*) Bash(pip:*) Bash(git:*) Read Write
 ---
 
 # Crush.skill — Relationship Persona Simulation Engine
 
-> 不是为了替代真实的人，而是为了帮你更理解人心。
+## Slash Commands
 
-## What it does
+| Command | What it does |
+|---------|-------------|
+| `/start-crush [archetype]` | Start a new session with a preset personality. Archetypes: `emotional`, `security`, `experience`, `value`, `passive`. |
+| `/custom-crush` | Build a fully custom 5-layer persona. Complete control over every dimension. |
+| `/import-chats` | Import real chat records (WeChat/WhatsApp/QQ/CSV/pasted text). Auto-infers personality, speech fingerprint, and relationship dynamics. |
+| `/chat [message]` | Send a message to the persona. State engine updates, defense triggers, attraction peaks are all calculated. |
+| `/crush-dashboard` | View the 8-dimensional relationship state dashboard. |
+| `/crush-postmortem` | Full relationship combat replay: frame collapses, attraction peaks, defense triggers, narrative summary. |
+| `/list-crushes` | List all saved sessions. |
+| `/let-go [session]` | Ritual closure. Deletes the session with an uplifting goodbye message. |
+| `/crush-llm [api_key]` | Configure LLM for semantic dialogue analysis. Optional — local analyzer works without it. |
 
-Build a realistic digital persona of someone — from chat history, from scratch, or from archetype presets. Interact with them. See how relationship dynamics change. Understand what works and what doesn't.
+## How to Use
 
-## Quick Reference
+### 1. Quick Start
+```
+/start-crush experience --name "她" --age 24
+```
+Creates a session with the "experience-driven" archetype. You'll see the full 5-layer persona, initial state, and a runtime prompt ready to feed into the LLM.
 
-| Situation | Action |
-|-----------|--------|
-| Start quickly with a preset personality | `python3 execute.py --action quick_start --session-id demo --config-json '{"archetype":"experience"}'` |
-| Build fully custom persona | `python3 execute.py --action custom_sandbox --session-id custom --config-json '{"persona":{...}}'` |
-| Import WeChat/WhatsApp chat records | `python3 execute.py --action chat_import --session-id real --source-text-file ./chats/wechat_export.txt` |
-| Send a message and see state changes | `python3 execute.py --action chat_turn --session-id demo --message "你今天状态看起来不错"` |
-| Run relationship diagnostics | `python3 execute.py --action postmortem --session-id demo` |
-| View current relationship dashboard | `python3 execute.py --action dashboard --session-id demo` |
-| List all sessions | `python3 execute.py --action list_sessions` |
-| Ritual closure | `python3 execute.py --action let_go --session-id demo` |
+### 2. Import Real Chat Records
+```
+/import-chats
+```
+Then paste your chat history. The engine will:
+- Auto-detect format (WeChat / WhatsApp / CSV / plain text)
+- Parse all messages
+- Infer personality traits (Big Five, MBTI, attachment style, love language)
+- Extract speech fingerprint (signature phrases, emoji patterns, humor style)
+- Estimate current favorability and tension baselines
 
-## Architecture
+You can also point to a file:
+```
+/import-chats --file ./chats/wechat_export.txt
+```
+
+### 3. Chat With the Persona
+```
+/chat "周末有空一起去看电影吗？"
+```
+Returns the updated state, delta changes, any triggered events (defense triggered, attraction peak, frame collapse risk), and a runtime prompt you can feed to the LLM to generate the NPC's response.
+
+### 4. Check the Dashboard
+```
+/crush-dashboard
+```
+Shows all 8 state dimensions with current values and recent events.
+
+### 5. Run a Postmortem
+```
+/crush-postmortem
+```
+Get a complete diagnostic report:
+- Frame collapse points — where things went wrong
+- Attraction peaks — what you did right
+- Defense triggers — what made them put up walls
+- Narrative summary with actionable insights
+
+### 6. Let Go
+```
+/let-go demo
+```
+When you're ready. Deletes the session and gives you a closure message.
+
+### 7. LLM Configuration
+```
+/crush-llm
+```
+Shows current LLM configuration. In Claude Code, it auto-detects the platform and uses Claude by default.
 
 ```
-┌────────────────────────────────────────────────────────┐
-│ Layer 4: NPC Runtime (LLM — Claude/GPT)               │
-│   Generates persona-consistent responses              │
-│   Injected with: full persona + state + memory        │
-├────────────────────────────────────────────────────────┤
-│ Layer 3: Dialogue Analysis (LLM or local)              │
-│   Semantic understanding of messages                  │
-│   Outputs: valence, neediness, pressure, authenticity │
-├────────────────────────────────────────────────────────┤
-│ Layer 2: Nonlinear State Engine (Python)               │
-│   S-curve saturation, habituation, tipping points     │
-│   10-dimensional state vector with cross-coupling     │
-├────────────────────────────────────────────────────────┤
-│ Layer 1: 5-Layer Persona Model (Python + YAML)        │
-│   Hard Rules → Identity → Expression → Emotional →   │
-│   Relational Context                                  │
-└────────────────────────────────────────────────────────┘
+/crush-llm sk-your-api-key
 ```
+Override with a custom OpenAI-compatible API key for dialogue analysis.
 
 ## The 5-Layer Persona
 
-| Layer | What it captures |
-|-------|-----------------|
-| **Hard Rules** | Non-negotiable boundaries, reply speed, ghost probability, tone restrictions |
-| **Identity** | MBTI, Big Five, age, gender, life stage, core values, insecurities, self-perception |
-| **Expression** | Signature phrases, filler words, emoji style, sentence structure, humor style — the *speech fingerprint* |
-| **Emotional** | Attachment style, love language, conflict style, stress response, mood volatility, trauma sensitivity |
-| **Relational** | Relationship stage, shared history, inside jokes, power dynamic, their view of you |
+Every persona is built from five layers. You can configure any layer in `/custom-crush`:
 
-## Chat Record Import
+| Layer | Field | Example |
+|-------|-------|---------|
+| **Hard Rules** | Topics off-limits, reply speed, ghost probability | `"topics_off_limits": ["前任", "体重"]` |
+| **Identity** | MBTI, Big Five, age, values, insecurities | `"mbti": "INFJ", "core_values": ["真诚"]` |
+| **Expression** | Signature phrases, emoji style, humor | `"signature_phrases": ["笑死", "确实"]` |
+| **Emotional** | Attachment style, love language, conflict pattern | `"attachment_style": "Fearful_Avoidant"` |
+| **Relational** | Stage, shared history, inside jokes, power dynamic | `"relationship_stage": "talking"` |
 
-Supports automatic format detection for:
-- **WeChat exports** (WeChatMsg / 留痕 / PyWxDump)
-- **WhatsApp** .txt exports
-- **QQ** chat exports
-- **CSV** structured imports
-- **Plain text** pasted conversations
+## Memory System
 
-The import pipeline extracts:
-- Personality traits (Big Five, MBTI, attachment style, love language)
-- Speech fingerprint (signature phrases, emoji patterns, sentence style)
-- Relationship phase and dynamics
-- Estimated favorability and tension baselines
+Crush.skill uses a **3-tier memory architecture**:
 
-## Custom Persona Sandbox
+1. **SQLite long-term memory** — persistent, source-of-truth for all sessions
+2. **mem0 semantic memory** — auto-installed, provides embedding-based retrieval for more human-like recall
+3. **Summary compression** — automatic periodic summarization to keep context manageable
 
-Full control over every dimension. Pass a complete 5-layer persona object:
+Memory auto-loads when you re-use a session ID. No manual save/load needed.
 
-```json
-{
-  "persona": {
-    "identity": {"name": "她", "mbti": "INFJ", "age": 25, ...},
-    "expression": {"signature_phrases": ["笑死", "确实"], "emoji_style": "heavy", ...},
-    "emotional": {"attachment_style": "Anxious", "love_language": "words_of_affirmation", ...},
-    "relational": {"relationship_stage": "dating", "power_dynamic": "balanced", ...}
-  }
-}
-```
+## Platform Detection
 
-## Environment Variables
+The engine auto-detects which platform it's running on:
+- **Claude Code** — uses Claude's built-in LLM for dialogue analysis
+- **OpenClaw** — uses platform default model
+- **QwenPaw / WorkBuddy** — falls back to local analysis (or configure with `/crush-llm`)
+- **Generic** — works anywhere with Python 3.10+
 
-- `CRUSH_MEMORY_BACKEND=sqlite|mem0` (default: sqlite)
-- `OPENAI_API_KEY` — enables LLM-powered dialogue analysis (much better accuracy)
-- `CRUSH_ANALYZER_MODEL` — model for analysis (default: gpt-4o-mini)
+## Environment
 
-## Output
-
-All actions output JSON with `success: true/false`. Key fields:
-- `state` — 10-dimensional relationship state vector
-- `delta` — per-turn state changes
-- `persona` — full 5-layer persona object
-- `runtime_prompt` — LLM-ready persona prompt for NPC roleplay
-- `dashboard` — human-readable state cards
-- `markdown` — postmortem report (for postmortem action)
+No manual setup needed. On first run, the engine auto-installs `pyyaml` and `mem0`.
+For LLM-powered analysis (higher accuracy), use `/crush-llm [api_key]`.

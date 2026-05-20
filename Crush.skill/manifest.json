@@ -1,7 +1,7 @@
 {
   "name": "crush_skill",
   "display_name": "Crush.skill",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Relationship Persona Simulation Engine — 5-layer personality, nonlinear state dynamics, LLM-powered dialogue analysis, multi-format chat import. Build a 'digital twin' of someone from chat history and interact with them realistically.",
   "author": "Crush.skill contributors",
   "license": "MIT",
