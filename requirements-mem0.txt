@@ -1,0 +1,2 @@
+-r requirements.txt
+mem0ai>=0.1.20

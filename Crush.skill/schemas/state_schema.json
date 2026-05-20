@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Relationship State",
+  "type": "object",
+  "properties": {
+    "favorability": {"type": "number", "minimum": -100, "maximum": 100},
+    "tension": {"type": "number", "minimum": -100, "maximum": 100},
+    "neediness": {"type": "number", "minimum": -100, "maximum": 100},
+    "frame_control": {"type": "number", "minimum": -100, "maximum": 100},
+    "exploration": {"type": "number", "minimum": -100, "maximum": 100},
+    "defense_level": {"type": "number", "minimum": -100, "maximum": 100},
+    "propulsion": {"type": "number", "minimum": -100, "maximum": 100},
+    "attachment_activation": {"type": "number", "minimum": -100, "maximum": 100},
+    "trauma_level": {"type": "number", "minimum": -100, "maximum": 100},
+    "push_pull_sensitivity": {"type": "number", "minimum": -100, "maximum": 100}
+  },
+  "required": [
+    "favorability",
+    "tension",
+    "neediness",
+    "frame_control",
+    "exploration",
+    "defense_level",
+    "propulsion",
+    "attachment_activation"
+  ]
+}

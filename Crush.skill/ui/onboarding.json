@@ -1,0 +1,36 @@
+{
+  "entry_modes": [
+    {
+      "id": "quick_start",
+      "label": "Quick Start",
+      "goal": "30秒进入体验",
+      "steps": ["选择性别", "选择关系原型", "选择关系阶段", "开始对话"]
+    },
+    {
+      "id": "custom_sandbox",
+      "label": "Custom Sandbox",
+      "goal": "高阶参数实验",
+      "parameters": [
+        "gender",
+        "age",
+        "mbti",
+        "attachment_style",
+        "relationship_archetype",
+        "favorability",
+        "tension",
+        "neediness",
+        "exploration",
+        "frame_control",
+        "defense_level",
+        "trauma_level",
+        "push_pull_sensitivity"
+      ]
+    },
+    {
+      "id": "reality_import",
+      "label": "Reality Import",
+      "goal": "从真实关系文本重建人格",
+      "inputs": ["昵称", "性别", "关系阶段", "聊天记录/时间线/争吵过程"]
+    }
+  ]
+}
