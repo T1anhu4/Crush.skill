@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NPC Profile",
+  "type": "object",
+  "properties": {
+    "archetype": {"type": "string"},
+    "attachment_style": {"type": "string"},
+    "mbti": {"type": "string"},
+    "gender": {"type": "string"},
+    "age": {"type": "integer"},
+    "relationship_stage": {"type": "string"}
+  },
+  "required": ["archetype", "attachment_style", "mbti", "relationship_stage"]
+}
