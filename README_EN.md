@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0"><img src="https://img.shields.io/badge/version-2.2.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0"><img src="https://img.shields.io/badge/version-2.3.0-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -18,11 +18,13 @@
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a>
   ·
+  <a href="#standalone-cli">Standalone CLI</a>
+  ·
   <a href="#chat-record-import">Chat Import</a>
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0">Download Release</a>
 </p>
 
 ---
@@ -40,6 +42,7 @@ It is not a replacement for a real person, and it is not built for manipulation.
 | Avoid context-window forgetting | Combines SQLite persona memory, episode memory, summaries, and local retrieval |
 | Review why things cooled down | Surfaces state changes, attraction peaks, defense triggers, and frame-collapse risks |
 | Deploy across agent platforms | Supports Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, and Cursor |
+| Skip agent setup | Install the standalone CLI and run `crush` locally |
 
 ## Why This Exists
 
@@ -61,6 +64,17 @@ It turns the person you're interested in into a **5-layer personality model**. I
 - Practice endlessly, so you're never fumbling in real life again
 
 > Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
+
+---
+
+## v2.3: Agent Skill + Standalone CLI
+
+Crush.skill now ships in two product forms:
+
+- **Agent Skill**: import it into Claude Code, OpenClaw, or QwenPaw so the host Agent can call the relationship persona engine.
+- **Standalone CLI**: install the local `crush` command and chat directly, with persona and memory stored on your machine.
+
+The first CLI release includes local SQLite memory, startup animation, spinners, persona reply bubbles, `/setup`, `/import`, `/dashboard`, `/postmortem`, `/sessions`, and a lightweight YAML fallback for restricted/offline environments.
 
 ---
 
@@ -153,6 +167,59 @@ Dependencies auto-install on first run. No manual setup needed.
 1. Download `crush_skill_openclaw.zip` or `crush_skill_qwenpaw.zip` from [Releases](https://github.com/T1anhu4/Crush.skill/releases)
 2. Drag into Claude Code or extract to `~/.claude/skills/crush-skill/`
 3. Dependencies install automatically on first use
+
+---
+
+## Standalone CLI
+
+Crush.skill can also run as a local-first chat CLI. Persona, memory, imported chat records, and config stay on your machine under `~/.crush/` by default.
+
+```bash
+git clone https://github.com/T1anhu4/Crush.skill.git
+cd Crush.skill
+bash scripts/install_cli.sh --force
+~/.crush/bin/crush
+```
+
+After adding `~/.crush/bin` to `PATH`, you can simply run:
+
+```bash
+crush
+```
+
+Configure a chat model inside the CLI:
+
+```text
+/setup
+```
+
+Or use OpenAI-compatible environment variables:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export OPENAI_API_BASE="https://api.openai.com/v1"
+export CRUSH_CHAT_MODEL="gpt-4o-mini"
+crush
+```
+
+Common CLI commands:
+
+| Command | Purpose |
+|---------|---------|
+| `/setup` | Configure OpenAI-compatible API base, model, and key |
+| `/start experience Her` | Create/reset the current persona session |
+| `/import ./wechat.txt` | Import chat records and rebuild persona |
+| `/sessions` | List local sessions |
+| `/use <session_id>` | Switch session |
+| `/dashboard` | Show relationship state |
+| `/postmortem` | Replay relationship events |
+| `/where` | Show local config and memory paths |
+
+Custom local memory directory:
+
+```bash
+crush --data-dir ~/my-crush-memory
+```
 
 ---
 

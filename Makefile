@@ -1,4 +1,4 @@
-.PHONY: bootstrap test package clean install-claude install-openclaw install-qwenpaw release
+.PHONY: bootstrap test package package-cli install-cli clean install-claude install-openclaw install-qwenpaw release
 
 bootstrap:
 	bash scripts/bootstrap.sh
@@ -8,6 +8,12 @@ test:
 
 package:
 	python3 scripts/package_skill.py
+
+package-cli:
+	python3 scripts/package_cli.py
+
+install-cli:
+	bash scripts/install_cli.sh --force
 
 install-claude:
 	bash scripts/install_skill.sh --platform claude --force

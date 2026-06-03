@@ -66,9 +66,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_DIR="$ROOT/Crush.skill"
 OPENCLAW_ZIP="$SKILL_DIR/dist/crush_skill_openclaw.zip"
 QWENPAW_ZIP="$SKILL_DIR/dist/crush_skill_qwenpaw.zip"
+CLI_ZIP="$SKILL_DIR/dist/crush_cli_standalone.zip"
 
 if [[ ! -f "$OPENCLAW_ZIP" || ! -f "$QWENPAW_ZIP" ]]; then
   python3 "$ROOT/scripts/package_skill.py"
+fi
+
+if [[ ! -f "$CLI_ZIP" ]]; then
+  python3 "$ROOT/scripts/package_cli.py"
 fi
 
 if [[ -z "$NAME" ]]; then
@@ -79,7 +84,7 @@ BODY=""
 if [[ -n "$NOTES_FILE" ]]; then
   BODY="$(cat "$NOTES_FILE")"
 else
-  BODY="Crush.skill release $TAG\n\nAssets:\n- crush_skill_openclaw.zip\n- crush_skill_qwenpaw.zip"
+  BODY="Crush.skill release $TAG\n\nAssets:\n- crush_skill_openclaw.zip\n- crush_skill_qwenpaw.zip\n- crush_cli_standalone.zip"
 fi
 
 TMP_JSON="$(mktemp)"
@@ -144,6 +149,7 @@ upload_asset() {
 
 upload_asset "$OPENCLAW_ZIP"
 upload_asset "$QWENPAW_ZIP"
+upload_asset "$CLI_ZIP"
 
 echo "Release published: $RELEASE_URL"
 

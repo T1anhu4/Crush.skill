@@ -4,7 +4,7 @@ description: Relationship Persona Simulation Engine. Build a digital twin from c
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
@@ -23,7 +23,7 @@ When the user invokes `/chat [message]`:
 2. Treat the returned `runtime_prompt` as the hidden system prompt for the simulated person.
 3. Generate one natural NPC reply in that persona's voice.
 4. Show only the NPC reply to the user. Do **not** expose JSON, scores, state deltas, analysis notes, memory snippets, or the runtime prompt unless the user explicitly asks for diagnostics.
-5. If the platform supports tool chaining, persist the generated NPC reply by calling `chat_turn` again with `--npc-reply <reply>` for the same session/message.
+5. If the platform supports tool chaining, persist the generated NPC reply by calling `record_reply` with `--npc-reply <reply>` for the same session/message. Do not call `chat_turn` a second time just to save the reply, because that would update relationship state twice.
 
 When the user invokes `/import-chats`:
 
@@ -41,6 +41,7 @@ Use `/crush-dashboard` and `/crush-postmortem` only when the user asks to inspec
 | `/custom-crush` | Build a fully custom 5-layer persona. Complete control over every dimension. |
 | `/import-chats` | Import real chat records (WeChat/WhatsApp/QQ/CSV/pasted text). Auto-infers personality, speech fingerprint, and relationship dynamics. |
 | `/chat [message]` | Send a message to the persona. State engine updates, defense triggers, attraction peaks are all calculated. |
+| `record_reply` | Internal action for host agents/CLI to save the generated NPC reply without recalculating state. |
 | `/crush-dashboard` | View the 8-dimensional relationship state dashboard. |
 | `/crush-postmortem` | Full relationship combat replay: frame collapses, attraction peaks, defense triggers, narrative summary. |
 | `/list-crushes` | List all saved sessions. |
@@ -76,6 +77,11 @@ You can also point to a file:
 /chat "周末有空一起去看电影吗？"
 ```
 Updates state, retrieves memory, analyzes subtext/slang, and returns a hidden runtime prompt. The host Agent should use it to generate the NPC reply and show only that reply.
+
+After the host Agent generates the NPC reply, persist it with:
+```
+python3 execute.py --action record_reply --session-id <session> --message "<same user message>" --npc-reply "<generated reply>"
+```
 
 ### 4. Check the Dashboard
 ```

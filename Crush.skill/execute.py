@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.2.0 — Relationship Persona Simulation Engine.
+Crush.skill v2.3.0 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -28,11 +28,12 @@ from pathlib import Path
 from typing import Any, Dict
 
 ROOT = Path(__file__).resolve().parent
+DATA_DIR = Path(os.environ.get("CRUSH_DATA_DIR", str(ROOT / "data"))).expanduser()
 
 # ── Auto-install dependencies on first run ─────────────────────
 def _ensure_deps():
     """Install required packages if missing. Runs once, silently."""
-    marker = ROOT / "data" / ".deps_installed"
+    marker = DATA_DIR / ".deps_installed"
     if marker.exists():
         return
 
@@ -82,7 +83,7 @@ class CrushSkillRuntime:
     def __init__(self) -> None:
         self.persona = PersonaEngine(ROOT / "presets")
         self.state_engine = StateEngine()
-        self.memory = HybridMemoryBackend(ROOT / "data")
+        self.memory = HybridMemoryBackend(DATA_DIR)
         self.reality_import = RealityImportEngine()
         self.chat_importer = ChatImporter()
         self.replay = ReplayEngine()
@@ -95,6 +96,7 @@ class CrushSkillRuntime:
             "reality_import": self.reality_import_mode,
             "chat_import": self.chat_import_mode,
             "chat_turn": self.chat_turn,
+            "record_reply": self.record_reply,
             "postmortem": self.postmortem,
             "timeline_append": self.timeline_append,
             "dashboard": self.dashboard,
@@ -326,6 +328,30 @@ class CrushSkillRuntime:
                 "agent_contract": self._agent_contract(),
                 "memory_backend": self.memory.status.to_dict()}
 
+    def record_reply(self, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        npc_reply = payload.get("npc_reply", "").strip()
+        if not npc_reply:
+            raise ValueError("record_reply requires payload.npc_reply")
+        session = self.memory.sqlite.load_session(session_id)
+        if not session:
+            raise ValueError(f"会话 '{session_id}' 不存在。先用 /start-crush 或 /import-chats 创建。")
+        self.memory.append_episode(
+            session_id,
+            "npc",
+            npc_reply,
+            tags=payload.get("tags", []),
+            meta={"mode": "record_reply", "reply_to": payload.get("message", "")},
+        )
+        self.memory.sqlite.update_summary(session_id)
+        return {
+            "success": True,
+            "action": "record_reply",
+            "session_id": session_id,
+            "recorded": True,
+            "memory_summary": self.memory.sqlite.get_summary(session_id),
+            "memory_backend": self.memory.status.to_dict(),
+        }
+
     # ── Slash Command: /crush-dashboard ────────────────────────────
     def dashboard(self, session_id: str, payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
         session = self.memory.sqlite.load_session(session_id)
@@ -388,7 +414,7 @@ class CrushSkillRuntime:
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
             # Persist to config file
-            config_dir = ROOT / "data"
+            config_dir = DATA_DIR
             config_dir.mkdir(parents=True, exist_ok=True)
             config_file = config_dir / "llm_config.json"
             config_file.write_text(json.dumps({"openai_api_key": api_key}, ensure_ascii=False))
@@ -446,7 +472,7 @@ class CrushSkillRuntime:
             push_pull_sensitivity=float(config.get("push_pull_sensitivity", baseline.get("push_pull_sensitivity", 26))),
         ).normalize()
         # Load persisted LLM config
-        llm_config = ROOT / "data" / "llm_config.json"
+        llm_config = DATA_DIR / "llm_config.json"
         if llm_config.exists():
             try:
                 saved = json.loads(llm_config.read_text())
@@ -477,9 +503,9 @@ class CrushSkillRuntime:
             "instruction": (
                 "Use runtime_prompt as the NPC system prompt. Reply only as the persona. "
                 "Do not explain state, JSON, analysis, scores, or skill internals to the user. "
-                "After generating the NPC reply, call chat_turn again with npc_reply to persist it when your platform supports tool chaining."
+                "After generating the NPC reply, call record_reply with npc_reply to persist it when your platform supports tool chaining."
             ),
-            "persistence_hint": "python3 execute.py --action chat_turn --session-id <id> --message <same_user_message> --npc-reply <generated_reply>",
+            "persistence_hint": "python3 execute.py --action record_reply --session-id <id> --message <same_user_message> --npc-reply <generated_reply>",
             "visible_to_user": ["npc_reply"],
             "hidden_from_user": ["state", "delta", "analysis", "runtime_prompt", "memory_context"],
         }
@@ -557,7 +583,7 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.2.0")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.3.0")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")

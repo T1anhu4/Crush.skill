@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0"><img src="https://img.shields.io/badge/version-2.2.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0"><img src="https://img.shields.io/badge/version-2.3.0-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -18,11 +18,13 @@
 <p align="center">
   <a href="#快速开始"><strong>快速安装</strong></a>
   ·
+  <a href="#独立-cli">独立 CLI</a>
+  ·
   <a href="#聊天记录导入">导入聊天记录</a>
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0">下载 Release</a>
 </p>
 
 ---
@@ -40,6 +42,7 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 | 避免上下文变长后失忆 | SQLite persona memory + episode memory + summary + local retrieval |
 | 复盘关系为什么变冷 | 生成状态变化、吸引力峰值、防御触发和 frame collapse 风险 |
 | 在不同 Agent 中部署 | 支持 Claude Code、OpenClaw、QwenPaw、WorkBuddy、Codex、Cursor |
+| 不想折腾 Agent | 安装独立 CLI，直接运行 `crush` 打开本地对话 |
 
 ## 为什么做这个
 
@@ -61,6 +64,24 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 - 反复练习，在现实中不再手忙脚乱
 
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
+
+---
+
+## v2.3 新能力：Skill 包 + 独立 CLI
+
+Crush.skill 现在有两种产品形态：
+
+- **Agent Skill**：导入 Claude Code / OpenClaw / QwenPaw，让宿主 Agent 调用关系人格引擎。
+- **Standalone CLI**：用户本地安装 `crush` 命令，直接打开 CLI 对话，记忆和人格都保存在本机。
+
+CLI 首版内置：
+
+- 本地 `~/.crush/data` SQLite 记忆目录
+- 启动动画、spinner、角色气泡和命令面板
+- `/setup` 配置 OpenAI-compatible 模型
+- `/import` 导入聊天记录
+- `/dashboard`、`/postmortem`、`/sessions` 等本地管理命令
+- 网络受限时的轻量 YAML fallback，减少安装失败
 
 ---
 
@@ -135,7 +156,7 @@ flowchart TB
 
 ## 快速开始
 
-### 方式一：一键 Prompt 安装
+### 方式一：Agent Skill 一键导入
 
 在 Claude Code / OpenClaw / QwenPaw 中直接粘贴以下 Prompt：
 
@@ -157,6 +178,61 @@ flowchart TB
 1. 从 [Releases](https://github.com/T1anhu4/Crush.skill/releases) 下载 `crush_skill_openclaw.zip` 或 `crush_skill_qwenpaw.zip`
 2. 在 Claude Code 中直接拖入 ZIP 文件或解压到 `~/.claude/skills/crush-skill/`
 3. 依赖会在首次使用时自动安装
+
+---
+
+## 独立 CLI
+
+如果你不想先接入 Agent 平台，也可以把 Crush.skill 当作一个本地聊天 CLI 使用。所有记忆、人格、导入记录都保存在你的电脑上，默认目录是 `~/.crush/`。
+
+```bash
+git clone https://github.com/T1anhu4/Crush.skill.git
+cd Crush.skill
+bash scripts/install_cli.sh --force
+~/.crush/bin/crush
+```
+
+如果你已经把 `~/.crush/bin` 加入 `PATH`，之后直接运行：
+
+```bash
+crush
+```
+
+首次进入 CLI 后建议先配置模型：
+
+```text
+/setup
+```
+
+也可以使用 OpenAI-compatible 环境变量：
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export OPENAI_API_BASE="https://api.openai.com/v1"
+export CRUSH_CHAT_MODEL="gpt-4o-mini"
+crush
+```
+
+常用 CLI 命令：
+
+| 命令 | 作用 |
+|------|------|
+| `/setup` | 配置 OpenAI-compatible API base、model、key |
+| `/start experience 她` | 创建/重置当前会话人格 |
+| `/import ./wechat.txt` | 导入聊天记录并重建人格 |
+| `/sessions` | 查看本地所有会话 |
+| `/use <session_id>` | 切换会话 |
+| `/dashboard` | 查看关系状态 |
+| `/postmortem` | 复盘关系事件 |
+| `/where` | 查看本地配置和记忆路径 |
+
+CLI 的记忆目录可以自己改：
+
+```bash
+crush --data-dir ~/my-crush-memory
+```
+
+> CLI 第一版使用轻量 ANSI 动画和本地 SQLite 记忆。它参考的是 Claude Code 那种“启动动效 + 状态提示 + 流式陪伴感”的体验方向，但没有复制任何闭源/外部实现。
 
 ---
 
