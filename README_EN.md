@@ -1,20 +1,47 @@
-# 💔 Crush.skill — Turn Them Into a Mirror, See Yourself
-
 <p align="center">
-  <em>Not a replacement for a real person — a way to understand human hearts better.</em>
+  <img src="assets/crush-skill-logo.png" alt="Crush.skill logo" width="860">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2.0-blue" alt="version">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
-  <img src="https://img.shields.io/badge/python-3.10+-yellow" alt="python">
-  <img src="https://img.shields.io/badge/platform-Claude%20Code%20%7C%20OpenClaw%20%7C%20QwenPaw%20%7C%20WorkBuddy-orange" alt="platforms">
-  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-purple" alt="memory">
+  <strong>Crush.skill</strong>
+  <br>
+  <em>Relationship Persona Simulation Engine for Claude Code, OpenClaw and QwenPaw</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0"><img src="https://img.shields.io/badge/version-2.2.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
+  <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
+  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
+</p>
+
+<p align="center">
+  <a href="#quick-start"><strong>Quick Start</strong></a>
+  ·
+  <a href="#chat-record-import">Chat Import</a>
+  ·
+  <a href="#architecture">Architecture</a>
+  ·
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0">Download Release</a>
 </p>
 
 ---
 
-## 🤔 Why This Exists
+## Product Positioning
+
+Crush.skill is an Agent-native **relationship persona simulation skill**. It distills chat history, relationship notes, or custom configuration into a persistent 5-layer persona model: speech patterns, emotional reactions, relationship stage, boundaries, shared context, and long-term memory.
+
+It is not a replacement for a real person, and it is not built for manipulation. Think of it as a **relationship flight simulator**: a safe place to practice understanding, expression, boundaries, and emotional presence.
+
+| What you need | How Crush.skill helps |
+|---------------|-----------------------|
+| Import real chat history | Extracts catchphrases, memes, boundaries, relationship phase, and their view of you |
+| Chat with a persona that feels specific | Uses hidden runtime prompts plus long-term memory so the Agent only shows in-character replies |
+| Avoid context-window forgetting | Combines SQLite persona memory, episode memory, summaries, and local retrieval |
+| Review why things cooled down | Surfaces state changes, attraction peaks, defense triggers, and frame-collapse risks |
+| Deploy across agent platforms | Supports Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, and Cursor |
+
+## Why This Exists
 
 **Being single isn't because you're not good enough. It's because nobody taught you how relationships work.**
 
@@ -37,7 +64,7 @@ It turns the person you're interested in into a **5-layer personality model**. I
 
 ---
 
-## ✨ v2.2: More Like a Person, Less Like a Bot
+## v2.2: More Like a Person, Less Like a Bot
 
 - **Imported persona persistence**: speech fingerprints, boundaries, inside jokes, and relationship context are saved to SQLite and reused in later `/chat` turns.
 - **Pragmatics Engine**: recognizes slang, memes, soft declines, pacing boundaries, and relationship tests before generating the runtime prompt.
@@ -47,32 +74,30 @@ It turns the person you're interested in into a **5-layer personality model**. I
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-```
-                         ┌──────────────────────────┐
-                         │   🌐 Multi-Platform      │
-                         │  Claude Code / OpenClaw  │
-                         │  QwenPaw / WorkBuddy     │
-                         └────────────┬─────────────┘
-                                      │
-                         ┌────────────▼─────────────┐
-                         │     Slash Commands       │
-                         │  /start-crush            │
-                         │  /import-chats           │
-                         │  /chat /dashboard        │
-                         │  /postmortem /let-go     │
-                         └────────────┬─────────────┘
-                                      │
-          ┌───────────────┬───────────┼───────────┬───────────────┐
-          │               │           │           │               │
-          ▼               ▼           ▼           ▼               ▼
-    ┌──────────┐   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-    │ Persona  │   │  State   │  │ Dialogue │  │  Chat    │  │ Memory   │
-    │  Engine  │   │  Engine  │  │ Analyzer │  │ Import   │  │ System   │
-    │ 5-layer  │   │Nonlinear │  │ LLM/local│  │WeChat/WA │  │ SQLite   │
-    │ model    │   │S-curves  │  │Pragmatic│  │ QQ/CSV   │  │ optional │
-    └──────────┘   └──────────┘  └──────────┘  └──────────┘  └──────────┘
+```mermaid
+flowchart TB
+  Agent["Agent Platforms<br/>Claude Code · OpenClaw · QwenPaw · WorkBuddy · Codex"]
+  Commands["Slash Commands<br/>/start-crush · /import-chats · /chat · /dashboard · /postmortem"]
+  Persona["Persona Engine<br/>5-layer identity, expression, emotion, relationship context"]
+  Import["Chat Import Engine<br/>WeChat · WhatsApp · QQ · CSV · pasted transcripts"]
+  Pragmatics["Pragmatics Engine<br/>slang, memes, soft declines, tests, subtext"]
+  State["State Engine<br/>nonlinear dynamics, defenses, tipping points"]
+  Memory["Memory System<br/>SQLite source-of-truth · local retrieval · optional mem0"]
+  Runtime["Hidden Runtime Prompt<br/>roleplay-only contract for natural NPC replies"]
+
+  Agent --> Commands
+  Commands --> Import
+  Commands --> Pragmatics
+  Commands --> State
+  Import --> Persona
+  Import --> Memory
+  Pragmatics --> Runtime
+  Persona --> Runtime
+  State --> Runtime
+  Memory --> Runtime
+  Runtime --> Agent
 ```
 
 ### 5-Layer Persona Model
@@ -104,7 +129,7 @@ Real humans don't follow linear formulas. Our state engine implements:
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Method 1: One-Prompt Install
 
@@ -131,7 +156,7 @@ Dependencies auto-install on first run. No manual setup needed.
 
 ---
 
-## 📖 Slash Commands
+## Slash Commands
 
 Everything works through slash commands inside your AI agent:
 
@@ -173,7 +198,7 @@ Just type `/import-chats` and paste your records. The engine handles everything 
 
 ---
 
-## 🔧 Environment (Optional)
+## Environment (Optional)
 
 Crush.skill works out of the box. These are optional advanced settings:
 
@@ -188,7 +213,7 @@ Crush.skill works out of the box. These are optional advanced settings:
 
 ---
 
-## 📄 License
+## License
 
 MIT License. Free to use, modify, distribute.
 
@@ -196,7 +221,7 @@ MIT License. Free to use, modify, distribute.
 
 ---
 
-## 💙 To Everyone Like the Author
+## To Everyone Like the Author
 
 Our generation was taught ten thousand skills — but never how to love someone.
 

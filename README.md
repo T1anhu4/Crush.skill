@@ -1,20 +1,47 @@
-# 💔 Crush.skill — 把 Ta 变成一面镜子，照见自己
-
 <p align="center">
-  <em>不是替代真实的人，而是帮你更理解人心。</em>
+  <img src="assets/crush-skill-logo.png" alt="Crush.skill logo" width="860">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2.0-blue" alt="version">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
-  <img src="https://img.shields.io/badge/python-3.10+-yellow" alt="python">
-  <img src="https://img.shields.io/badge/platform-Claude%20Code%20%7C%20OpenClaw%20%7C%20QwenPaw%20%7C%20WorkBuddy-orange" alt="platforms">
-  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-purple" alt="memory">
+  <strong>Crush.skill</strong>
+  <br>
+  <em>Relationship Persona Simulation Engine for Claude Code, OpenClaw and QwenPaw</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0"><img src="https://img.shields.io/badge/version-2.2.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
+  <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
+  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
+</p>
+
+<p align="center">
+  <a href="#快速开始"><strong>快速安装</strong></a>
+  ·
+  <a href="#聊天记录导入">导入聊天记录</a>
+  ·
+  <a href="#技术架构">技术架构</a>
+  ·
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.2.0">下载 Release</a>
 </p>
 
 ---
 
-## 🤔 为什么做这个
+## 产品定位
+
+Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以把聊天记录、现实关系描述或手动配置，蒸馏成一个可持续对话的 5 层人格模型：说话方式、情绪反应、关系阶段、边界、共同经历和长期记忆都会被保存下来。
+
+它不是为了替代真实的人，也不是为了操控谁。它更像一台 **关系飞行模拟器**：让你在安全环境里练习理解、表达、边界感和情绪接住能力。
+
+| 你想做什么 | Crush.skill 怎么帮你 |
+|------------|----------------------|
+| 导入真实聊天记录 | 自动提取口头禅、梗、边界、关系阶段和 Ta 对你的看法 |
+| 和“像她”的人格对话 | 通过隐藏 runtime prompt + 长期记忆，让 Agent 只输出角色回复 |
+| 避免上下文变长后失忆 | SQLite persona memory + episode memory + summary + local retrieval |
+| 复盘关系为什么变冷 | 生成状态变化、吸引力峰值、防御触发和 frame collapse 风险 |
+| 在不同 Agent 中部署 | 支持 Claude Code、OpenClaw、QwenPaw、WorkBuddy、Codex、Cursor |
+
+## 为什么做这个
 
 **母胎 solo 不是因为你不够好，而是因为你不懂"关系"。**
 
@@ -37,7 +64,7 @@
 
 ---
 
-## ✨ v2.2 新能力：更像真人，而不是人机
+## v2.2 新能力：更像真人，而不是人机
 
 这次升级的重点不是让 NPC 更会“分析”，而是让它更会“像一个具体的人那样聊天”：
 
@@ -51,34 +78,30 @@
 
 ---
 
-## 🏗️ 技术架构
+## 技术架构
 
-```
-                         ┌──────────────────────────┐
-                         │   🌐 Multi-Platform      │
-                         │  Claude Code / OpenClaw  │
-                         │  QwenPaw / WorkBuddy     │
-                         └────────────┬─────────────┘
-                                      │
-                         ┌────────────▼─────────────┐
-                         │     Slash Commands       │
-                         │  /start-crush            │
-                         │  /import-chats           │
-                         │  /chat /dashboard        │
-                         │  /postmortem /let-go     │
-                         └────────────┬─────────────┘
-                                      │
-          ┌───────────────┬───────────┼───────────┬───────────────┐
-          │               │           │           │               │
-          ▼               ▼           ▼           ▼               ▼
-    ┌──────────┐   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-    │ Persona  │   │  State   │  │ Dialogue │  │  Chat    │  │ Memory   │
-    │  Engine  │   │  Engine  │  │ Analyzer │  │ Import   │  │ System   │
-    │          │   │          │  │          │  │          │  │          │
-    │ 5-layer  │   │ Nonlinear│  │ LLM or   │  │ WeChat   │  │ SQLite   │
-    │ persona  │   │ S-curves │  │ Pragmatics│ │ WhatsApp │  │ optional │
-    │ model    │   │ + tipping│  │ fallback │  │ QQ/CSV   │  │ semantic │
-    └──────────┘   └──────────┘  └──────────┘  └──────────┘  └──────────┘
+```mermaid
+flowchart TB
+  Agent["Agent Platforms<br/>Claude Code · OpenClaw · QwenPaw · WorkBuddy · Codex"]
+  Commands["Slash Commands<br/>/start-crush · /import-chats · /chat · /dashboard · /postmortem"]
+  Persona["Persona Engine<br/>5-layer identity, expression, emotion, relationship context"]
+  Import["Chat Import Engine<br/>WeChat · WhatsApp · QQ · CSV · pasted transcripts"]
+  Pragmatics["Pragmatics Engine<br/>slang, memes, soft declines, tests, subtext"]
+  State["State Engine<br/>nonlinear dynamics, defenses, tipping points"]
+  Memory["Memory System<br/>SQLite source-of-truth · local retrieval · optional mem0"]
+  Runtime["Hidden Runtime Prompt<br/>roleplay-only contract for natural NPC replies"]
+
+  Agent --> Commands
+  Commands --> Import
+  Commands --> Pragmatics
+  Commands --> State
+  Import --> Persona
+  Import --> Memory
+  Pragmatics --> Runtime
+  Persona --> Runtime
+  State --> Runtime
+  Memory --> Runtime
+  Runtime --> Agent
 ```
 
 ### 5 层人格模型
@@ -110,7 +133,7 @@
 
 ---
 
-## ⚡ 快速开始
+## 快速开始
 
 ### 方式一：一键 Prompt 安装
 
@@ -137,7 +160,7 @@
 
 ---
 
-## 📖 功能指南
+## 功能指南
 
 ### Slash Commands 一览
 
@@ -205,7 +228,7 @@ Ta：看情况吧，我这周可能有点懒哈哈。你先说看啥？
 
 ---
 
-## 🔧 环境变量（可选）
+## 环境变量（可选）
 
 Crush.skill 开箱即用，无需任何配置。以下为可选的高级设置：
 
@@ -220,7 +243,7 @@ Crush.skill 开箱即用，无需任何配置。以下为可选的高级设置�
 
 ---
 
-## 📄 许可证
+## 许可证
 
 MIT License。你可以自由使用、修改、分发。
 
@@ -228,7 +251,7 @@ MIT License。你可以自由使用、修改、分发。
 
 ---
 
-## 💙 致所有像作者一样的人
+## 致所有像作者一样的人
 
 我们这一代人从小到大被教了一万种技能，唯独没学过怎么爱一个人。
 
