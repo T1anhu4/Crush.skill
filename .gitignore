@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .DS_Store
 Crush.skill/data/*.sqlite3
+Crush.skill/data/
 Crush.skill/dist/*.zip
+Crush.skill/dist/
 node_modules/
 .claude/skills/

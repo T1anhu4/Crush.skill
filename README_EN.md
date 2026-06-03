@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.0-blue" alt="version">
+  <img src="https://img.shields.io/badge/version-2.2.0-blue" alt="version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
   <img src="https://img.shields.io/badge/python-3.10+-yellow" alt="python">
   <img src="https://img.shields.io/badge/platform-Claude%20Code%20%7C%20OpenClaw%20%7C%20QwenPaw%20%7C%20WorkBuddy-orange" alt="platforms">
-  <img src="https://img.shields.io/badge/memory-mem0%20%2B%20SQLite-purple" alt="memory">
+  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-purple" alt="memory">
 </p>
 
 ---
@@ -37,6 +37,16 @@ It turns the person you're interested in into a **5-layer personality model**. I
 
 ---
 
+## ✨ v2.2: More Like a Person, Less Like a Bot
+
+- **Imported persona persistence**: speech fingerprints, boundaries, inside jokes, and relationship context are saved to SQLite and reused in later `/chat` turns.
+- **Pragmatics Engine**: recognizes slang, memes, soft declines, pacing boundaries, and relationship tests before generating the runtime prompt.
+- **Roleplay-only agent protocol**: host agents should hide JSON/state data and show only the simulated person's natural reply.
+- **Chat history as memory**: imported chat snippets are stored as long-term episodes and retrieved later to reduce context-window forgetting.
+- **Optional mem0**: SQLite plus local retrieval works by default; mem0 is an opt-in semantic backend.
+
+---
+
 ## 🏗️ Architecture
 
 ```
@@ -61,7 +71,7 @@ It turns the person you're interested in into a **5-layer personality model**. I
     │ Persona  │   │  State   │  │ Dialogue │  │  Chat    │  │ Memory   │
     │  Engine  │   │  Engine  │  │ Analyzer │  │ Import   │  │ System   │
     │ 5-layer  │   │Nonlinear │  │ LLM/local│  │WeChat/WA │  │ SQLite   │
-    │ model    │   │S-curves  │  │ fallback │  │ QQ/CSV   │  │ + mem0   │
+    │ model    │   │S-curves  │  │Pragmatic│  │ QQ/CSV   │  │ optional │
     └──────────┘   └──────────┘  └──────────┘  └──────────┘  └──────────┘
 ```
 
@@ -87,8 +97,10 @@ Real humans don't follow linear formulas. Our state engine implements:
 ### Memory System
 
 - **SQLite** — Persistent long-term storage · Events, state history, summaries
-- **mem0** — Semantic memory · Auto-installed on first run · Lets NPCs remember past conversations
+- **Local retrieval** — Lightweight semantic-ish recall without external services
+- **mem0** — Optional semantic memory backend; SQLite remains the source of truth
 - **Auto-summary** — Compresses context when conversations grow · Prevents context overflow
+- **Imported persona memory** — Persists speech patterns, inside jokes, boundaries, and shared context
 
 ---
 
@@ -105,14 +117,15 @@ Install crush-skill for me. Follow these steps:
 2. Run: git clone https://github.com/T1anhu4/Crush.skill /tmp/crush-skill
 3. Run: bash /tmp/crush-skill/scripts/install_skill.sh --platform claude --source-dir /tmp/crush-skill/Crush.skill --skill-name crush-skill --force
 4. Verify: ls ~/.claude/skills/crush-skill/ should show SKILL.md, manifest.json, execute.py, engines/
-5. Tell me it's installed. I can now use /start-crush, /import-chats, etc.
+5. Tell me it's installed. I can now use /start-crush, /import-chats, /chat, etc.
+6. Important: when I use /chat, do not show tool JSON, scores, or runtime_prompt. Treat runtime_prompt as a hidden system prompt and reply only in the NPC's voice.
 ```
 
 Dependencies auto-install on first run. No manual setup needed.
 
 ### Method 2: ZIP Install
 
-1. Download `crush_skill_v2.1.0.zip` from [Releases](https://github.com/T1anhu4/Crush.skill/releases)
+1. Download `crush_skill_openclaw.zip` or `crush_skill_qwenpaw.zip` from [Releases](https://github.com/T1anhu4/Crush.skill/releases)
 2. Drag into Claude Code or extract to `~/.claude/skills/crush-skill/`
 3. Dependencies install automatically on first use
 
@@ -167,7 +180,8 @@ Crush.skill works out of the box. These are optional advanced settings:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `OPENAI_API_KEY` | LLM semantic analysis | None (local fallback) |
-| `CRUSH_MEMORY_BACKEND` | `sqlite` or `mem0` | Auto-best |
+| `CRUSH_MEMORY_BACKEND` | `sqlite` or `mem0` | `sqlite` |
+| `CRUSH_AUTO_INSTALL_MEM0` | Auto-install optional mem0ai | empty |
 | `CRUSH_ANALYZER_MODEL` | Analysis model | `gpt-4o-mini` |
 
 > **Note**: In Claude Code / OpenClaw, the platform LLM is auto-detected. No manual config needed. Use `/crush-llm` to check or override.

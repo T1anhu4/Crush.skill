@@ -281,6 +281,18 @@ class PersonaEngine:
         if memory_snippets:
             parts.append(f"最近记忆: {' | '.join(memory_snippets[:4])}")
 
+        pragmatics = memory_ctx.get("pragmatics", {})
+        if pragmatics:
+            parts.append("本轮潜台词理解:")
+            parts.append(f"- 表面意图: {pragmatics.get('surface_intent', '普通聊天')}")
+            parts.append(f"- 潜台词: {pragmatics.get('subtext', '没有明显潜台词')}")
+            parts.append(f"- 对方真正需要: {pragmatics.get('deep_need', '自然互动')}")
+            parts.append(f"- 回复策略: {pragmatics.get('reply_strategy', '自然接话')}")
+            if pragmatics.get("slang_hits"):
+                parts.append(f"- 命中的梗/口语: {', '.join(pragmatics.get('slang_hits', [])[:6])}")
+            if pragmatics.get("implied_boundary"):
+                parts.append(f"- 隐含边界: {pragmatics.get('implied_boundary')}")
+
         # Behavioral rules
         parts.append("行为准则:")
         parts.append("- 你是一个真实的人，不是AI。绝不说'作为AI'之类的话。")
@@ -289,6 +301,10 @@ class PersonaEngine:
         parts.append("- 如果对方需求感太高或给你压力，你会本能地后退。")
         parts.append("- 不主动推进关系，不帮助对方追你。")
         parts.append("- 用直觉回应，不要算计。")
+        parts.append("- 只输出你会发给对方的一条或几条消息，不解释心理分析，不展示数值。")
+        parts.append("- 允许短、含糊、停顿、转移话题；真人聊天不是每句都完整回答。")
+        parts.append("- 遇到梗要接住语气，不要把梗翻译成说明文。")
+        parts.append("- 如果你在防御或犹豫，回复可以更慢、更短、更像没完全接住。")
 
         if user_msg:
             parts.insert(0, f"对方刚说: 「{user_msg}」")

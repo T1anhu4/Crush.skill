@@ -69,6 +69,17 @@ class TurnAnalysis:
     stability_score: float = 0.0
     value_signal_score: float = 0.0
     attachment_trigger_score: float = 0.0
+    surface_intent: str = "普通聊天"
+    deep_need: str = "保持自然互动"
+    emotional_state: str = "neutral"
+    test_flag: bool = False
+    test_type: str | None = None
+    subtext: str = "没有明显潜台词"
+    reply_strategy: str = "自然接话，不解释，不上价值"
+    register_tags: list[str] = field(default_factory=list)
+    slang_hits: list[str] = field(default_factory=list)
+    implied_boundary: str = ""
+    confidence: float = 0.35
     notes: list[str] = field(default_factory=list)
 
     def bounded(self) -> "TurnAnalysis":

@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from .pragmatics_engine import interpret_message
+
 
 @dataclass
 class ChatMessage:
@@ -59,6 +61,12 @@ class ChatImportResult:
     emoji_favorites: List[str] = field(default_factory=list)
     sentence_structure: str = "casual"
     humor_style: str = "dry"
+    slang_hits: List[str] = field(default_factory=list)
+    inside_jokes: List[str] = field(default_factory=list)
+    boundary_phrases: List[str] = field(default_factory=list)
+    shared_experiences: List[str] = field(default_factory=list)
+    their_view_of_you: str = ""
+    discourse_notes: List[str] = field(default_factory=list)
 
     # Relationship signals
     relationship_phase: str = "talking"
@@ -88,6 +96,12 @@ class ChatImportResult:
             "emoji_favorites": self.emoji_favorites,
             "sentence_structure": self.sentence_structure,
             "humor_style": self.humor_style,
+            "slang_hits": self.slang_hits,
+            "inside_jokes": self.inside_jokes,
+            "boundary_phrases": self.boundary_phrases,
+            "shared_experiences": self.shared_experiences,
+            "their_view_of_you": self.their_view_of_you,
+            "discourse_notes": self.discourse_notes,
             "relationship_phase": self.relationship_phase,
             "sentiment_trend": self.sentiment_trend,
             "key_topics": self.key_topics,
@@ -267,6 +281,12 @@ class ChatImporter:
         result.emoji_style, result.emoji_favorites = self._analyze_emoji_usage(other_msgs)
         result.sentence_structure = self._analyze_sentence_structure(other_msgs)
         result.humor_style = self._detect_humor_style(other_msgs)
+        result.slang_hits = self._extract_slang_hits(other_msgs)
+        result.inside_jokes = self._extract_inside_jokes(messages)
+        result.boundary_phrases = self._extract_boundary_phrases(other_msgs)
+        result.shared_experiences = self._extract_shared_experiences(messages)
+        result.their_view_of_you = self._infer_their_view_of_you(other_msgs)
+        result.discourse_notes = self._build_discourse_notes(result)
 
         # ── Relationship phase ──
         result.relationship_phase = self._detect_relationship_phase(other_msgs, self_msgs)
@@ -356,10 +376,10 @@ class ChatImporter:
                     if re.match(r'^[一-鿿]+$', phrase):
                         word_counter[phrase] += 1
 
-        # Filter: must appear at least 3 times, not be common words
+        # Filter: repeated phrases are best; for short imports keep salient slang.
         common = {"哈哈哈", "不知道", "我觉得", "是不是", "可以的", "就是说", "哈哈哈", "嗯嗯嗯"}
         phrases = [(p, c) for p, c in word_counter.most_common(30)
-                   if c >= 3 and p not in common]
+                   if c >= 2 and p not in common]
         return [p for p, _ in phrases[:8]]
 
     def _extract_filler_words(self, msgs: List[ChatMessage]) -> List[str]:
@@ -405,6 +425,70 @@ class ChatImporter:
             "dry": len(re.findall(r"确实|嗯|哦|知道了|好|行|那没事了", text)),
         }
         return max(scores, key=scores.get) if max(scores.values()) > 0 else "dry"
+
+    def _extract_slang_hits(self, msgs: List[ChatMessage]) -> List[str]:
+        counter: Counter = Counter()
+        for msg in msgs:
+            signal = interpret_message(msg.content)
+            for hit in signal.slang_hits:
+                counter[hit] += 1
+        return [hit for hit, _ in counter.most_common(12)]
+
+    def _extract_inside_jokes(self, msgs: List[ChatMessage]) -> List[str]:
+        counter: Counter = Counter()
+        for msg in msgs:
+            content = msg.content
+            if any(mark in content for mark in ["笑死", "绝了", "地铁老人", "抽象", "会谢", "属于是"]):
+                cleaned = content.strip()
+                if 2 <= len(cleaned) <= 28:
+                    counter[cleaned] += 1
+            quoted = re.findall(r"[「『\"](.{2,18}?)[」』\"]", content)
+            for phrase in quoted:
+                counter[phrase] += 1
+        return [joke for joke, _ in counter.most_common(8)]
+
+    def _extract_boundary_phrases(self, msgs: List[ChatMessage]) -> List[str]:
+        counter: Counter = Counter()
+        for msg in msgs:
+            signal = interpret_message(msg.content)
+            if signal.implied_boundary:
+                counter[signal.implied_boundary] += 1
+            for phrase in ["看情况", "再说吧", "别太认真", "别太上头", "先冷静", "慢慢来", "不要逼我"]:
+                if phrase in msg.content:
+                    counter[phrase] += 1
+        return [phrase for phrase, _ in counter.most_common(8)]
+
+    def _extract_shared_experiences(self, msgs: List[ChatMessage]) -> List[str]:
+        counter: Counter = Counter()
+        pattern = re.compile(r"(一起|上次|那天|昨天|周末|咖啡|电影|吃饭|散步|见面|地铁|学校|公司)")
+        for msg in msgs:
+            if pattern.search(msg.content):
+                snippet = msg.content.strip()
+                if 4 <= len(snippet) <= 36:
+                    counter[snippet] += 1
+        return [item for item, _ in counter.most_common(8)]
+
+    def _infer_their_view_of_you(self, msgs: List[ChatMessage]) -> str:
+        text = " ".join(m.content for m in msgs)
+        if re.search(r"上头|太认真|别.*急|压力|逼", text):
+            return "觉得你有时投入太快，但不一定讨厌你；更需要轻松和空间。"
+        if re.search(r"好玩|有趣|开心|哈哈|笑死", text):
+            return "觉得你有趣，互动有情绪价值，但需要保持自然。"
+        if re.search(r"靠谱|稳定|踏实|安心", text):
+            return "觉得你可靠，适合慢慢了解。"
+        return "还在观察你，评价会随互动质量变化。"
+
+    def _build_discourse_notes(self, result: ChatImportResult) -> List[str]:
+        notes = []
+        if result.slang_hits:
+            notes.append("说话里有明显网络口语/梗，回复时要接梗，不要翻译梗。")
+        if result.boundary_phrases:
+            notes.append("出现过边界/降温表达，推进关系时要短句、低压力。")
+        if result.avg_message_length < 12:
+            notes.append("消息偏短，NPC 回复也要克制，不要长篇解释。")
+        if result.emoji_style in {"heavy", "moderate"}:
+            notes.append("可以自然使用少量表情，但不要每句都堆。")
+        return notes
 
     def _detect_relationship_phase(self, other_msgs: List[ChatMessage], self_msgs: List[ChatMessage]) -> str:
         total = len(other_msgs) + len(self_msgs)

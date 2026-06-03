@@ -45,6 +45,7 @@ class MemoryEngine:
                 session_id TEXT PRIMARY KEY,
                 profile_json TEXT NOT NULL,
                 state_json TEXT NOT NULL,
+                persona_json TEXT,
                 canonical_archetype TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
@@ -87,7 +88,16 @@ class MemoryEngine:
             );
             """
         )
+        self._ensure_column("sessions", "persona_json", "TEXT")
         self.conn.commit()
+
+    def _ensure_column(self, table: str, column: str, definition: str) -> None:
+        columns = {
+            row["name"]
+            for row in self.conn.execute(f"PRAGMA table_info({table})").fetchall()
+        }
+        if column not in columns:
+            self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
     def _now(self) -> str:
         return datetime.now(tz=timezone.utc).isoformat()
@@ -101,15 +111,25 @@ class MemoryEngine:
         profile: Dict[str, Any],
         state: Dict[str, Any],
         canonical_archetype: str,
+        persona: Dict[str, Any] | None = None,
     ) -> None:
         now = self._now()
+        current = self.load_session(session_id)
+        persona_json = (
+            json.dumps(persona, ensure_ascii=False)
+            if persona is not None
+            else json.dumps(current.get("persona"), ensure_ascii=False)
+            if current and current.get("persona")
+            else None
+        )
         self.conn.execute(
             """
-            INSERT INTO sessions(session_id, profile_json, state_json, canonical_archetype, created_at, updated_at)
-            VALUES(?, ?, ?, ?, ?, ?)
+            INSERT INTO sessions(session_id, profile_json, state_json, persona_json, canonical_archetype, created_at, updated_at)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(session_id) DO UPDATE SET
               profile_json=excluded.profile_json,
               state_json=excluded.state_json,
+              persona_json=COALESCE(excluded.persona_json, sessions.persona_json),
               canonical_archetype=excluded.canonical_archetype,
               updated_at=excluded.updated_at
             """,
@@ -117,6 +137,7 @@ class MemoryEngine:
                 session_id,
                 json.dumps(profile, ensure_ascii=False),
                 json.dumps(state, ensure_ascii=False),
+                persona_json,
                 canonical_archetype,
                 now,
                 now,
@@ -126,7 +147,7 @@ class MemoryEngine:
 
     def load_session(self, session_id: str) -> Dict[str, Any] | None:
         row = self.conn.execute(
-            "SELECT session_id, profile_json, state_json, canonical_archetype, created_at, updated_at FROM sessions WHERE session_id=?",
+            "SELECT session_id, profile_json, state_json, persona_json, canonical_archetype, created_at, updated_at FROM sessions WHERE session_id=?",
             (session_id,),
         ).fetchone()
         if not row:
@@ -135,10 +156,27 @@ class MemoryEngine:
             "session_id": row["session_id"],
             "profile": json.loads(row["profile_json"]),
             "state": json.loads(row["state_json"]),
+            "persona": json.loads(row["persona_json"]) if row["persona_json"] else None,
             "canonical_archetype": row["canonical_archetype"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
+
+    def save_persona(self, session_id: str, persona: Dict[str, Any]) -> None:
+        self.conn.execute(
+            "UPDATE sessions SET persona_json=?, updated_at=? WHERE session_id=?",
+            (json.dumps(persona, ensure_ascii=False), self._now(), session_id),
+        )
+        self.conn.commit()
+
+    def load_persona(self, session_id: str) -> Dict[str, Any] | None:
+        row = self.conn.execute(
+            "SELECT persona_json FROM sessions WHERE session_id=?",
+            (session_id,),
+        ).fetchone()
+        if not row or not row["persona_json"]:
+            return None
+        return json.loads(row["persona_json"])
 
     def append_episode(
         self,

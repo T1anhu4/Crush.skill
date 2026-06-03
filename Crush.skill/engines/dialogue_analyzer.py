@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from urllib.request import Request, urlopen
 
+from .pragmatics_engine import interpret_message
 from .types import TurnAnalysis, clamp
 
 # ── Enhanced Local Analyzer ──────────────────────────────────────
@@ -86,6 +87,7 @@ def _cue_score(text: str, cues: set[str], max_hits: int = 4) -> float:
 def analyze_local(message: str) -> TurnAnalysis:
     """Enhanced local analysis with negation awareness and richer signals."""
     text = message.strip()
+    pragmatic = interpret_message(text)
 
     # Negation detection
     negated = _has_negation(text)
@@ -111,7 +113,28 @@ def analyze_local(message: str) -> TurnAnalysis:
         stability_score=_cue_score(text, STABILITY_CUES),
         value_signal_score=_cue_score(text, VALUE_SIGNAL_CUES),
         attachment_trigger_score=_cue_score(text, ATTACHMENT_TRIGGER_CUES),
+        surface_intent=pragmatic.surface_intent,
+        deep_need=pragmatic.deep_need,
+        emotional_state=pragmatic.emotional_state,
+        test_flag=pragmatic.test_flag,
+        test_type=pragmatic.test_type,
+        subtext=pragmatic.subtext,
+        reply_strategy=pragmatic.reply_strategy,
+        register_tags=pragmatic.register_tags,
+        slang_hits=pragmatic.slang_hits,
+        implied_boundary=pragmatic.implied_boundary,
+        confidence=pragmatic.confidence,
     ).bounded()
+
+    if "playful" in pragmatic.register_tags:
+        analysis.playfulness_score = max(analysis.playfulness_score, 0.55)
+    if "boundary" in pragmatic.register_tags:
+        analysis.pressure_score = max(analysis.pressure_score, 0.35)
+        analysis.attachment_trigger_score = max(analysis.attachment_trigger_score, 0.25)
+    if "soft_decline" in pragmatic.register_tags:
+        analysis.valence = min(analysis.valence, -0.15)
+    if pragmatic.test_flag:
+        analysis.attachment_trigger_score = max(analysis.attachment_trigger_score, 0.35)
 
     # Notes
     if negated:
@@ -126,8 +149,12 @@ def analyze_local(message: str) -> TurnAnalysis:
         analysis.notes.append("轻松互动信号")
     if analysis.attachment_trigger_score > 0.35:
         analysis.notes.append("依恋焦虑触发")
+    if pragmatic.slang_hits:
+        analysis.notes.append("识别到梗/口语: " + ", ".join(pragmatic.slang_hits[:4]))
+    if pragmatic.subtext != "没有明显潜台词":
+        analysis.notes.append("潜台词: " + pragmatic.subtext)
 
-    return analysis
+    return analysis.bounded()
 
 
 # ── LLM-powered Analyzer ──────────────────────────────────────────
@@ -152,6 +179,11 @@ Return:
   "test_flag": <bool, is this a relationship test?>,
   "test_type": "<string or null, investment_test/compliance_test/jealousy_test/character_test>",
   "subtext": "<string, what they're really saying between the lines>",
+  "reply_strategy": "<string, how the simulated person should answer without sounding like an assistant>",
+  "register_tags": [<list of slang/pragmatic tags such as playful, boundary, soft_decline, test>],
+  "slang_hits": [<list of detected slang/memes/inside jokes>],
+  "implied_boundary": "<string, any implied boundary or pace signal>",
+  "confidence": <float 0-1>,
   "notes": [<list of 1-3 key observations in Chinese>]
 }}"""
 
@@ -200,6 +232,17 @@ def analyze_llm(message: str, api_base: str | None = None, api_key: str | None =
             stability_score=float(result.get("stability_score", 0)),
             value_signal_score=float(result.get("value_signal_score", 0)),
             attachment_trigger_score=float(result.get("attachment_trigger_score", 0)),
+            surface_intent=result.get("surface_intent", "普通聊天"),
+            deep_need=result.get("deep_need", "保持自然互动"),
+            emotional_state=result.get("emotional_state", "neutral"),
+            test_flag=bool(result.get("test_flag", False)),
+            test_type=result.get("test_type"),
+            subtext=result.get("subtext", "没有明显潜台词"),
+            reply_strategy=result.get("reply_strategy", "自然接话，不解释，不上价值"),
+            register_tags=result.get("register_tags", []),
+            slang_hits=result.get("slang_hits", []),
+            implied_boundary=result.get("implied_boundary", ""),
+            confidence=float(result.get("confidence", 0.7)),
             notes=result.get("notes", []),
         ).bounded()
 

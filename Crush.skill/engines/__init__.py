@@ -8,6 +8,7 @@ __all__ = [
     "memory_engine",
     "memory_backend",
     "persona_engine",
+    "pragmatics_engine",
     "reality_import_engine",
     "replay_engine",
     "state_engine",

@@ -4,7 +4,7 @@ description: Relationship Persona Simulation Engine. Build a digital twin from c
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
@@ -12,6 +12,26 @@ allowed-tools: Bash(python3:*) Bash(pip:*) Bash(git:*) Read Write
 ---
 
 # Crush.skill — Relationship Persona Simulation Engine
+
+## Agent Response Protocol
+
+Crush.skill is a roleplay-and-analysis skill. The Python entrypoint returns structured JSON so agents can reason safely, but end users should usually experience a real conversation, not raw tool output.
+
+When the user invokes `/chat [message]`:
+
+1. Run `execute.py --action chat_turn --session-id <session> --message <message>`.
+2. Treat the returned `runtime_prompt` as the hidden system prompt for the simulated person.
+3. Generate one natural NPC reply in that persona's voice.
+4. Show only the NPC reply to the user. Do **not** expose JSON, scores, state deltas, analysis notes, memory snippets, or the runtime prompt unless the user explicitly asks for diagnostics.
+5. If the platform supports tool chaining, persist the generated NPC reply by calling `chat_turn` again with `--npc-reply <reply>` for the same session/message.
+
+When the user invokes `/import-chats`:
+
+1. Parse/import the chat records with `chat_import`.
+2. Show a compact summary: inferred persona, speech fingerprint, inside jokes/slang, relationship state, and the session id.
+3. Tell the user they can now say `/chat ...`; after that, follow the `/chat` protocol above.
+
+Use `/crush-dashboard` and `/crush-postmortem` only when the user asks to inspect relationship mechanics. In ordinary chat, stay in character.
 
 ## Slash Commands
 
@@ -33,7 +53,7 @@ allowed-tools: Bash(python3:*) Bash(pip:*) Bash(git:*) Read Write
 ```
 /start-crush experience --name "她" --age 24
 ```
-Creates a session with the "experience-driven" archetype. You'll see the full 5-layer persona, initial state, and a runtime prompt ready to feed into the LLM.
+Creates a session with the "experience-driven" archetype. The runtime prompt is for the host Agent, not for direct user display.
 
 ### 2. Import Real Chat Records
 ```
@@ -55,7 +75,7 @@ You can also point to a file:
 ```
 /chat "周末有空一起去看电影吗？"
 ```
-Returns the updated state, delta changes, any triggered events (defense triggered, attraction peak, frame collapse risk), and a runtime prompt you can feed to the LLM to generate the NPC's response.
+Updates state, retrieves memory, analyzes subtext/slang, and returns a hidden runtime prompt. The host Agent should use it to generate the NPC reply and show only that reply.
 
 ### 4. Check the Dashboard
 ```
@@ -107,10 +127,10 @@ Every persona is built from five layers. You can configure any layer in `/custom
 Crush.skill uses a **3-tier memory architecture**:
 
 1. **SQLite long-term memory** — persistent, source-of-truth for all sessions
-2. **mem0 semantic memory** — auto-installed, provides embedding-based retrieval for more human-like recall
-3. **Summary compression** — automatic periodic summarization to keep context manageable
+2. **Optional mem0 semantic memory** — enable with `CRUSH_MEMORY_BACKEND=mem0` after installing/configuring mem0ai
+3. **Summary compression + local vector retrieval** — automatic compression and lightweight retrieval to keep context manageable
 
-Memory auto-loads when you re-use a session ID. No manual save/load needed.
+Imported personas, speech fingerprints, inside jokes, imported chat episodes, state snapshots, and summaries auto-load when you re-use a session ID. No manual save/load needed.
 
 ## Platform Detection
 
@@ -122,5 +142,5 @@ The engine auto-detects which platform it's running on:
 
 ## Environment
 
-No manual setup needed. On first run, the engine auto-installs `pyyaml` and `mem0`.
+No manual setup needed. On first run, the engine auto-installs `pyyaml`. mem0 is optional; set `CRUSH_AUTO_INSTALL_MEM0=1` only if you want that optional semantic backend.
 For LLM-powered analysis (higher accuracy), use `/crush-llm [api_key]`.

@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.0-blue" alt="version">
+  <img src="https://img.shields.io/badge/version-2.2.0-blue" alt="version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
   <img src="https://img.shields.io/badge/python-3.10+-yellow" alt="python">
   <img src="https://img.shields.io/badge/platform-Claude%20Code%20%7C%20OpenClaw%20%7C%20QwenPaw%20%7C%20WorkBuddy-orange" alt="platforms">
-  <img src="https://img.shields.io/badge/memory-mem0%20%2B%20SQLite-purple" alt="memory">
+  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-purple" alt="memory">
 </p>
 
 ---
@@ -34,6 +34,20 @@
 - 反复练习，在现实中不再手忙脚乱
 
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
+
+---
+
+## ✨ v2.2 新能力：更像真人，而不是人机
+
+这次升级的重点不是让 NPC 更会“分析”，而是让它更会“像一个具体的人那样聊天”：
+
+- **导入人格持久化**：聊天记录分析出的口头禅、边界、内部梗、关系阶段会写入 SQLite，后续 `/chat` 不会退回预设人格。
+- **梗与潜台词理解**：内置 Pragmatics Engine，可识别“地铁老人看手机”“抽象”“我真的会谢”“不是哥们”“看情况”“别太认真”等语境信号。
+- **角色输出协议**：Agent 调用 `/chat` 后应隐藏 JSON 和状态分数，只把 `runtime_prompt` 当系统提示，直接用 Ta 的口吻回复。
+- **聊天记录变长期记忆**：导入时会把最多 300 条历史聊天写入记忆库，后续按语义/关键词召回，不容易因为上下文变长而失忆。
+- **可选 mem0，不强依赖**：默认 SQLite + 本地向量检索已经可用；需要更强语义记忆时再启用 mem0。
+
+一句话说：v2.2 让 Crush.skill 从“会生成一个人格设定”变成“能长期维持一个人的说话纹理和关系惯性”。
 
 ---
 
@@ -62,7 +76,7 @@
     │  Engine  │   │  Engine  │  │ Analyzer │  │ Import   │  │ System   │
     │          │   │          │  │          │  │          │  │          │
     │ 5-layer  │   │ Nonlinear│  │ LLM or   │  │ WeChat   │  │ SQLite   │
-    │ persona  │   │ S-curves │  │ local    │  │ WhatsApp │  │ + mem0   │
+    │ persona  │   │ S-curves │  │ Pragmatics│ │ WhatsApp │  │ optional │
     │ model    │   │ + tipping│  │ fallback │  │ QQ/CSV   │  │ semantic │
     └──────────┘   └──────────┘  └──────────┘  └──────────┘  └──────────┘
 ```
@@ -89,8 +103,10 @@
 ### 记忆系统
 
 - **SQLite** — 长期持久化 · 事件/状态/摘要全量存储
-- **mem0** — 语义记忆 · 首次运行自动安装 · 让 NPC 记住你们聊过什么
+- **本地向量检索** — 轻量语义召回 · 无需外部服务
+- **可选 mem0** — 需要更强语义记忆时启用，SQLite 仍是 source-of-truth
 - **自动摘要** — 对话量大的时候自动压缩 · 保证上下文不爆
+- **导入人格持久化** — 保存口头禅、梗、边界、共同经历、Ta 对你的看法
 
 ---
 
@@ -101,20 +117,21 @@
 在 Claude Code / OpenClaw / QwenPaw 中直接粘贴以下 Prompt：
 
 ```text
-帮我安装 crush-skill。按下面步骤做：
+帮我安装 Crush.skill 这个关系人格模拟 skill。按下面步骤做：
 
 1. 确保 ~/.claude/skills/ 目录存在（不存在就创建）
 2. 执行 git clone https://github.com/T1anhu4/Crush.skill /tmp/crush-skill
 3. 执行 bash /tmp/crush-skill/scripts/install_skill.sh --platform claude --source-dir /tmp/crush-skill/Crush.skill --skill-name crush-skill --force
 4. 验证：ls ~/.claude/skills/crush-skill/ 应该看到 SKILL.md、manifest.json、execute.py、engines/
-5. 告诉我安装好了，之后我可以使用 /start-crush、/import-chats 等命令
+5. 告诉我安装好了，之后我可以使用 /start-crush、/import-chats、/chat 等命令
+6. 重要：以后我用 /chat 时，不要把工具 JSON、状态分数、runtime_prompt 展示给我；请把 runtime_prompt 当隐藏系统提示，直接用 NPC 的口吻回复
 ```
 
-安装完成后自动可用。首次运行时会自动安装所需依赖（pyyaml、mem0），无需手动操作。
+安装完成后自动可用。首次运行时会自动安装所需基础依赖（pyyaml），无需手动操作。
 
 ### 方式二：ZIP 安装
 
-1. 从 [Releases](https://github.com/T1anhu4/Crush.skill/releases) 下载 `crush_skill_v2.1.0.zip`
+1. 从 [Releases](https://github.com/T1anhu4/Crush.skill/releases) 下载 `crush_skill_openclaw.zip` 或 `crush_skill_qwenpaw.zip`
 2. 在 Claude Code 中直接拖入 ZIP 文件或解压到 `~/.claude/skills/crush-skill/`
 3. 依赖会在首次使用时自动安装
 
@@ -160,8 +177,21 @@
 - 识别消息格式
 - 推断大五人格 · MBTI · 依恋类型 · 爱的语言
 - 提取口头禅 · 语气词 · 表情包使用风格
+- 提取内部梗 · 网络口语 · 边界表达 · 共同经历
 - 分析关系阶段（陌生人 → 暧昧 → 约会 → 稳定）
 - 估算当前好感度和张力
+- 将导入的人格画像和聊天片段持久化，后续 `/chat` 自动继承
+
+### `/chat` 的正确体验
+
+用户看到的应该是一条自然回复，而不是工具 JSON：
+
+```text
+你：/chat "周末要不要一起看电影？"
+Ta：看情况吧，我这周可能有点懒哈哈。你先说看啥？
+```
+
+内部流程是：状态更新 → 记忆召回 → 潜台词/梗识别 → 生成隐藏 `runtime_prompt` → Agent 用 Ta 的口吻回复。除非你主动打开 `/crush-dashboard` 或 `/crush-postmortem`，否则不展示分数和分析。
 
 ### 5 种预设人格
 
@@ -182,10 +212,11 @@ Crush.skill 开箱即用，无需任何配置。以下为可选的高级设置�
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `OPENAI_API_KEY` | LLM 语义分析 API key | 无（使用本地分析） |
-| `CRUSH_MEMORY_BACKEND` | 记忆后端 `sqlite` 或 `mem0` | 自动选择最佳 |
+| `CRUSH_MEMORY_BACKEND` | 记忆后端 `sqlite` 或 `mem0` | `sqlite` |
+| `CRUSH_AUTO_INSTALL_MEM0` | 是否自动安装可选 mem0ai | 空 |
 | `CRUSH_ANALYZER_MODEL` | 分析模型 | `gpt-4o-mini` |
 
-> **提示**：在 Claude Code / OpenClaw 中运行时会自动检测平台 LLM，无需手动配置。使用 `/crush-llm` 查看或修改配置。
+> **提示**：默认不需要 mem0。只有当你明确想接入外部语义记忆时，才设置 `CRUSH_MEMORY_BACKEND=mem0` 并安装/配置 mem0ai。SQLite 会一直作为主记忆库，避免外部服务不可用时丢失关系历史。
 
 ---
 

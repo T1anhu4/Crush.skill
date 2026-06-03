@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.1.0 — Relationship Persona Simulation Engine.
+Crush.skill v2.2.0 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -21,8 +21,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
+import importlib.util
+import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
@@ -36,19 +37,18 @@ def _ensure_deps():
         return
 
     missing = []
-    for pkg in ["pyyaml"]:
+    for pkg in ["yaml"]:
         try:
             __import__(pkg)
         except ImportError:
             missing.append(pkg)
 
-    # mem0 — auto-install for long-term memory
-    try:
-        __import__("mem0")
-    except ImportError:
+    # mem0 is optional. Do not import it here: some agents run in a
+    # restricted HOME and mem0's import side effects can write there.
+    if os.environ.get("CRUSH_AUTO_INSTALL_MEM0", "").lower() in {"1", "true", "yes"} and not importlib.util.find_spec("mem0"):
         try:
             subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", "mem0", "-q"],
+                [sys.executable, "-m", "pip", "install", "mem0ai", "-q"],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception:
             pass  # mem0 is optional enhancement
@@ -124,7 +124,7 @@ class CrushSkillRuntime:
             mbti=persona_obj.identity.mbti, gender=persona_obj.identity.gender,
             age=persona_obj.identity.age,
             relationship_stage=persona_obj.relational.relationship_stage)
-        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), canonical)
+        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), canonical, persona_obj.to_dict())
         self.memory.sqlite.append_timeline_event(session_id, "session_started",
             f"Quick start: {archetype} ({persona_obj.identity.name or 'unnamed'})",
             {"mode": "quick_start", "canonical_archetype": canonical})
@@ -148,7 +148,7 @@ class CrushSkillRuntime:
             mbti=persona_obj.identity.mbti, gender=persona_obj.identity.gender,
             age=persona_obj.identity.age,
             relationship_stage=persona_obj.relational.relationship_stage)
-        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), canonical)
+        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), canonical, persona_obj.to_dict())
         self.memory.sqlite.append_timeline_event(session_id, "session_started",
             f"Custom sandbox: {persona_obj.identity.name or 'custom'}", {"mode": "custom_sandbox"})
         self.memory.sqlite.update_summary(session_id)
@@ -176,7 +176,7 @@ class CrushSkillRuntime:
                 "self_perception": f"从{analysis.total_messages}条消息推断的人格画像",
             },
             "expression": {
-                "signature_phrases": analysis.signature_phrases,
+                "signature_phrases": list(dict.fromkeys(analysis.signature_phrases + analysis.slang_hits))[:12],
                 "filler_words": analysis.filler_words,
                 "emoji_style": analysis.emoji_style,
                 "emoji_favorites": analysis.emoji_favorites,
@@ -188,11 +188,21 @@ class CrushSkillRuntime:
             "emotional": {
                 "attachment_style": analysis.inferred_attachment,
                 "love_language": analysis.inferred_love_language,
-                "trauma_sensitivity": 0.15, "mood_volatility": 0.3,
+                "vulnerability_triggers": analysis.boundary_phrases,
+                "trauma_sensitivity": 0.15,
+                "mood_volatility": 0.45 if analysis.sentiment_trend == "volatile" else 0.3,
+                "stress_response": "withdraw" if analysis.boundary_phrases else "discuss",
             },
             "relational": {
                 "relationship_stage": analysis.relationship_phase,
                 "power_dynamic": "balanced",
+                "inside_jokes": analysis.inside_jokes,
+                "shared_experiences": analysis.shared_experiences,
+                "their_view_of_you": analysis.their_view_of_you,
+            },
+            "hard_rules": {
+                "max_message_length": max(12, min(120, int(analysis.avg_message_length * 1.4) or 80)),
+                "double_text_tolerance": "low" if analysis.boundary_phrases else "medium",
             },
         }
         persona_obj = self.persona.from_custom(persona_dict)
@@ -205,7 +215,15 @@ class CrushSkillRuntime:
             attachment_style=analysis.inferred_attachment, mbti=analysis.inferred_mbti,
             gender=persona_obj.identity.gender, age=persona_obj.identity.age,
             relationship_stage=analysis.relationship_phase)
-        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), archetype)
+        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), archetype, persona_obj.to_dict())
+        for msg in messages[:300]:
+            self.memory.append_episode(
+                session_id,
+                msg.sender,
+                msg.content,
+                tags=["chat_import"],
+                meta={"timestamp": msg.timestamp, "original_line": msg.original_line},
+            )
         self.memory.sqlite.append_timeline_event(session_id, "chat_import",
             f"从 {analysis.total_messages} 条聊天记录导入", analysis.to_dict())
         self.memory.sqlite.append_state_snapshot(session_id, state.to_dict(), {},
@@ -225,7 +243,23 @@ class CrushSkillRuntime:
             raise ValueError("reality_import requires payload.source_text")
         seed_profile = payload.get("profile", {})
         result = self.reality_import.import_from_text(seed_profile, source_text)
-        self.memory.sqlite.upsert_session(session_id, result.profile.to_dict(), result.state.to_dict(), result.canonical_archetype)
+        persona_obj = self.persona.from_preset(result.canonical_archetype, overrides={
+            "identity": {
+                "gender": result.profile.gender,
+                "age": result.profile.age,
+                "mbti": result.profile.mbti,
+                "self_perception": "从现实关系文本推断的人格画像",
+            },
+            "emotional": {"attachment_style": result.profile.attachment_style},
+            "relational": {"relationship_stage": result.profile.relationship_stage},
+        })
+        self.memory.sqlite.upsert_session(
+            session_id,
+            result.profile.to_dict(),
+            result.state.to_dict(),
+            result.canonical_archetype,
+            persona_obj.to_dict(),
+        )
         self.memory.append_episode(session_id, "import", source_text[:1000], tags=["reality_import"], meta={"mode": "reality_import"})
         self.memory.sqlite.append_timeline_event(session_id, "reality_import", "完成现实关系文本导入并重建人格", result.evidence)
         self.memory.sqlite.append_state_snapshot(session_id, result.state.to_dict(), {}, ["reality_import"], "Reality Import 初始状态")
@@ -234,7 +268,7 @@ class CrushSkillRuntime:
                 "profile": result.profile.to_dict(), "canonical_archetype": result.canonical_archetype,
                 "state": result.state.to_dict(), "evidence": result.evidence,
                 "dashboard": self._dashboard(result.state.to_dict(), {}),
-                "runtime_prompt": self._build_legacy_prompt(result.profile, result.state, session_id, source_text),
+                "runtime_prompt": self.persona.build_runtime_prompt(persona_obj, result.state.to_dict(), {}, source_text),
                 "memory_backend": self.memory.status.to_dict()}
 
     # ── Slash Command: /chat [message] ─────────────────────────────
@@ -267,6 +301,18 @@ class CrushSkillRuntime:
                 {"delta": calculated["delta"], "analysis": calculated["analysis"]})
         self.memory.sqlite.update_summary(session_id)
         memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=message, limit=6)
+        memory_ctx["pragmatics"] = {
+            "surface_intent": analysis.surface_intent,
+            "subtext": analysis.subtext,
+            "deep_need": analysis.deep_need,
+            "emotional_state": analysis.emotional_state,
+            "test_flag": analysis.test_flag,
+            "test_type": analysis.test_type,
+            "reply_strategy": analysis.reply_strategy,
+            "register_tags": analysis.register_tags,
+            "slang_hits": analysis.slang_hits,
+            "implied_boundary": analysis.implied_boundary,
+        }
         persona_obj = self._load_persona_for_session(session)
         runtime_prompt = self.persona.build_runtime_prompt(
             persona_obj, CoreState.from_dict(calculated["state"]).to_dict(), memory_ctx, message)
@@ -276,7 +322,9 @@ class CrushSkillRuntime:
                 "tags": calculated["tags"], "relationship_vector": calculated["relationship_vector"],
                 "dashboard": self._dashboard(calculated["state"], calculated["delta"], calculated["tags"]),
                 "memory_context": memory_ctx, "memory_summary": self.memory.sqlite.get_summary(session_id),
-                "runtime_prompt": runtime_prompt, "memory_backend": self.memory.status.to_dict()}
+                "runtime_prompt": runtime_prompt,
+                "agent_contract": self._agent_contract(),
+                "memory_backend": self.memory.status.to_dict()}
 
     # ── Slash Command: /crush-dashboard ────────────────────────────
     def dashboard(self, session_id: str, payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
@@ -409,12 +457,32 @@ class CrushSkillRuntime:
         return state
 
     def _load_persona_for_session(self, session: Dict[str, Any]) -> Any:
+        persona_data = session.get("persona")
+        if persona_data:
+            try:
+                from engines.persona_engine import Persona
+                return Persona.from_dict(persona_data)
+            except Exception:
+                pass
         profile = session.get("profile", {})
         canonical = session.get("canonical_archetype", "experience")
         try:
             return self.persona.from_preset(profile.get("archetype", canonical))
         except Exception:
             return self.persona.from_preset("experience")
+
+    def _agent_contract(self) -> Dict[str, Any]:
+        return {
+            "mode": "roleplay_only",
+            "instruction": (
+                "Use runtime_prompt as the NPC system prompt. Reply only as the persona. "
+                "Do not explain state, JSON, analysis, scores, or skill internals to the user. "
+                "After generating the NPC reply, call chat_turn again with npc_reply to persist it when your platform supports tool chaining."
+            ),
+            "persistence_hint": "python3 execute.py --action chat_turn --session-id <id> --message <same_user_message> --npc-reply <generated_reply>",
+            "visible_to_user": ["npc_reply"],
+            "hidden_from_user": ["state", "delta", "analysis", "runtime_prompt", "memory_context"],
+        }
 
     def _dashboard(self, state: Dict[str, Any], delta: Dict[str, Any], tags: list | None = None) -> Dict[str, Any]:
         tags = tags or []
@@ -489,7 +557,7 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.1.0")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.2.0")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")
