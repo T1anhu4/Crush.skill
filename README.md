@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.1"><img src="https://img.shields.io/badge/version-2.3.1-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.0"><img src="https://img.shields.io/badge/version-2.4.0-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.1">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.0">下载 Release</a>
 </p>
 
 ---
@@ -64,6 +64,18 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 - 反复练习，在现实中不再手忙脚乱
 
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
+
+---
+
+## v2.4 新能力：时间线、主动性和更敏感的需求感识别
+
+v2.4 让 CLI 更像一个真实聊天对象，而不是“你问一句它回一句”的工具：
+
+- **昵称边界/需求感识别**：反复问“能不能叫你宝宝/姐姐/老婆”等，会被识别为亲密许可索取和节奏推进，提升 `neediness_score`、`pressure_score` 和防御风险。
+- **时间线推进**：CLI 打开时会维护本地时间线，时间流逝会影响她是否主动发消息。
+- **主动消息**：根据人格原型、依恋类型、好感、探索、防御、当前时间段和最近互动，概率性生成主动开场或追问。
+- **暂停时间**：使用 `/stop` 暂停时间线和主动消息；使用 `/continue` 恢复。
+- **非模板化**：早餐、通勤、午饭、下班、睡前只是时间上下文，不是固定话术。
 
 ---
 
@@ -234,6 +246,8 @@ crush
 | `/use <session_id>` | 切换会话 |
 | `/dashboard` | 查看关系状态 |
 | `/postmortem` | 复盘关系事件 |
+| `/stop` | 暂停时间线推进和主动消息 |
+| `/continue` | 恢复时间线推进和主动消息 |
 | `/where` | 查看本地配置和记忆路径 |
 
 CLI 的记忆目录可以自己改：

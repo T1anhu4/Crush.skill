@@ -4,7 +4,7 @@ description: Relationship Persona Simulation Engine. Build a digital twin from c
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.3.1"
+  version: "2.4.0"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
@@ -42,6 +42,7 @@ Use `/crush-dashboard` and `/crush-postmortem` only when the user asks to inspec
 | `/import-chats` | Import real chat records (WeChat/WhatsApp/QQ/CSV/pasted text). Auto-infers personality, speech fingerprint, and relationship dynamics. |
 | `/chat [message]` | Send a message to the persona. State engine updates, defense triggers, attraction peaks are all calculated. |
 | `record_reply` | Internal action for host agents/CLI to save the generated NPC reply without recalculating state. |
+| `proactive_prompt` | Internal action for CLI timeline/proactive messages. Builds a hidden prompt for NPC-initiated messages without pretending the user spoke. |
 | `/crush-dashboard` | View the 8-dimensional relationship state dashboard. |
 | `/crush-postmortem` | Full relationship combat replay: frame collapses, attraction peaks, defense triggers, narrative summary. |
 | `/list-crushes` | List all saved sessions. |

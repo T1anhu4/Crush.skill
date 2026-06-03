@@ -4,11 +4,13 @@ import argparse
 import getpass
 import json
 import os
+import random
 import shlex
 import sys
 import textwrap
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable
 from urllib.error import HTTPError, URLError
@@ -228,6 +230,9 @@ class CrushCLI:
         self.once_message = args.message
         self.runtime = import_runtime(self.data_dir)
         self.client = ChatClient(self.config)
+        self.timeline_stop = threading.Event()
+        self.timeline_thread: threading.Thread | None = None
+        self.print_lock = threading.Lock()
 
     def run(self) -> int:
         self.intro()
@@ -235,19 +240,23 @@ class CrushCLI:
         if self.once_message:
             self.chat(self.once_message)
             return 0
-        while True:
-            try:
-                raw = input(color(f"\n{self.session_id} › ", C.rose, not self.plain)).strip()
-            except (EOFError, KeyboardInterrupt):
-                print("\n" + color("愿你带着学到的东西往前走。", C.dim, not self.plain))
-                return 0
-            if not raw:
-                continue
-            if raw.startswith("/"):
-                if self.command(raw) is False:
+        self.start_timeline()
+        try:
+            while True:
+                try:
+                    raw = input(color(f"\n{self.session_id} › ", C.rose, not self.plain)).strip()
+                except (EOFError, KeyboardInterrupt):
+                    print("\n" + color("愿你带着学到的东西往前走。", C.dim, not self.plain))
                     return 0
-                continue
-            self.chat(raw)
+                if not raw:
+                    continue
+                if raw.startswith("/"):
+                    if self.command(raw) is False:
+                        return 0
+                    continue
+                self.chat(raw)
+        finally:
+            self.stop_timeline()
 
     def intro(self) -> None:
         if not self.plain:
@@ -307,6 +316,10 @@ class CrushCLI:
                 self.dashboard()
             elif cmd == "/postmortem":
                 self.postmortem()
+            elif cmd == "/stop":
+                self.pause_timeline()
+            elif cmd == "/continue":
+                self.continue_timeline()
             elif cmd == "/where":
                 self.where()
             else:
@@ -324,6 +337,8 @@ class CrushCLI:
             ("/use <session_id>", "switch session"),
             ("/dashboard", "show relationship state"),
             ("/postmortem", "relationship replay report"),
+            ("/stop", "pause timeline and proactive messages"),
+            ("/continue", "resume timeline and proactive messages"),
             ("/config model|base|key <value>", "update local model config"),
             ("/where", "show local config and memory paths"),
             ("/quit", "exit"),
@@ -425,8 +440,17 @@ class CrushCLI:
         print(f"config: {self.config_file}")
         print(f"data:   {self.data_dir}")
         print(f"skill:  {SKILL_DIR}")
+        timeline = self.timeline_state()
+        paused = "yes" if timeline.get("paused") else "no"
+        next_at = timeline.get("next_proactive_at", 0)
+        next_text = datetime.fromtimestamp(next_at).strftime("%Y-%m-%d %H:%M:%S") if next_at else "not scheduled"
+        print(f"timeline paused: {paused}")
+        print(f"next proactive:  {next_text}")
 
     def chat(self, message: str) -> None:
+        timeline = self.timeline_state()
+        timeline["last_user_at"] = time.time()
+        self.save_timeline_state(timeline)
         with Spinner("Reading memory, updating state, sensing subtext...", enabled=not self.plain):
             turn = self.runtime.run("chat_turn", self.session_id, {"message": message})
         if not self.client.ready:
@@ -446,7 +470,165 @@ class CrushCLI:
             self.session_id,
             {"message": message, "npc_reply": reply, "tags": turn.get("tags", [])},
         )
+        timeline = self.timeline_state()
+        timeline["last_npc_at"] = time.time()
+        timeline["next_proactive_at"] = time.time() + self.sample_proactive_delay()
+        self.save_timeline_state(timeline)
         self.print_reply(reply, turn)
+
+    def start_timeline(self) -> None:
+        state = self.timeline_state()
+        if not state.get("next_proactive_at"):
+            state["next_proactive_at"] = time.time() + self.sample_proactive_delay()
+            self.save_timeline_state(state)
+        self.timeline_thread = threading.Thread(target=self.timeline_loop, daemon=True)
+        self.timeline_thread.start()
+
+    def stop_timeline(self) -> None:
+        self.timeline_stop.set()
+        if self.timeline_thread:
+            self.timeline_thread.join(timeout=0.5)
+
+    def pause_timeline(self) -> None:
+        state = self.timeline_state()
+        state["paused"] = True
+        self.save_timeline_state(state)
+        print(color("Timeline paused. Use /continue to resume time progression.", C.gold, not self.plain))
+
+    def continue_timeline(self) -> None:
+        state = self.timeline_state()
+        state["paused"] = False
+        state["next_proactive_at"] = time.time() + min(90.0, self.sample_proactive_delay())
+        self.save_timeline_state(state)
+        print(color("Timeline resumed. She may message proactively when it feels natural.", C.green, not self.plain))
+
+    def timeline_state(self) -> Dict[str, Any]:
+        all_states = self.config.setdefault("timeline", {})
+        state = all_states.setdefault(self.session_id, {})
+        now = time.time()
+        state.setdefault("paused", False)
+        state.setdefault("last_user_at", now)
+        state.setdefault("last_npc_at", 0.0)
+        state.setdefault("next_proactive_at", 0.0)
+        return state
+
+    def save_timeline_state(self, state: Dict[str, Any]) -> None:
+        self.config.setdefault("timeline", {})[self.session_id] = state
+        self.config["session_id"] = self.session_id
+        self.config["data_dir"] = str(self.data_dir)
+        save_config(self.config_file, self.config)
+
+    def timeline_loop(self) -> None:
+        while not self.timeline_stop.is_set():
+            self.timeline_stop.wait(8.0)
+            if self.timeline_stop.is_set() or not self.client.ready:
+                continue
+            try:
+                self.maybe_proactive_message()
+            except Exception as exc:
+                with self.print_lock:
+                    print(color(f"\nTimeline skipped: {exc}", C.dim, not self.plain))
+
+    def maybe_proactive_message(self) -> None:
+        state = self.timeline_state()
+        now = time.time()
+        if state.get("paused") or now < float(state.get("next_proactive_at", 0)):
+            return
+        probability = self.proactive_probability()
+        if random.random() > probability:
+            state["next_proactive_at"] = now + self.sample_proactive_delay()
+            self.save_timeline_state(state)
+            return
+
+        event = self.timeline_event(state)
+        prompt = self.runtime.run("proactive_prompt", self.session_id, {"event": event, **state})
+        reply = self.client.reply(prompt["runtime_prompt"], event)
+        if reply.strip() == "__NO_MESSAGE__":
+            state["next_proactive_at"] = now + self.sample_proactive_delay()
+            self.save_timeline_state(state)
+            return
+        self.runtime.run(
+            "record_reply",
+            self.session_id,
+            {"message": event, "npc_reply": reply, "tags": ["timeline_proactive"]},
+        )
+        state["last_npc_at"] = time.time()
+        state["next_proactive_at"] = time.time() + self.sample_proactive_delay()
+        self.save_timeline_state(state)
+        with self.print_lock:
+            print(color("\n[time passes]", C.dim, not self.plain))
+            self.print_reply(reply, {"relationship_vector": "时间线主动消息", "delta": {}})
+            sys.stdout.write(color(f"\n{self.session_id} › ", C.rose, not self.plain))
+            sys.stdout.flush()
+
+    def sample_proactive_delay(self) -> float:
+        session = self.runtime.memory.sqlite.load_session(self.session_id) or {}
+        canonical = session.get("canonical_archetype", "experience")
+        profile = session.get("profile", {})
+        attachment = profile.get("attachment_style", "")
+        ranges = {
+            "emotional": (65, 240),
+            "experience": (90, 360),
+            "security": (420, 1500),
+            "value": (600, 2100),
+            "passive": (1200, 3600),
+        }
+        low, high = ranges.get(canonical, ranges["experience"])
+        if "Anxious" in attachment:
+            low *= 0.65
+            high *= 0.75
+        if "Avoidant" in attachment:
+            low *= 1.35
+            high *= 1.5
+        scale = float(os.environ.get("CRUSH_TIMELINE_SPEED", "1") or "1")
+        return max(15.0, random.uniform(low, high) * scale)
+
+    def proactive_probability(self) -> float:
+        session = self.runtime.memory.sqlite.load_session(self.session_id) or {}
+        profile = session.get("profile", {})
+        state = session.get("state", {})
+        canonical = session.get("canonical_archetype", "experience")
+        base = {
+            "emotional": 0.68,
+            "experience": 0.52,
+            "security": 0.28,
+            "value": 0.2,
+            "passive": 0.12,
+        }.get(canonical, 0.42)
+        attachment = profile.get("attachment_style", "")
+        if "Anxious" in attachment:
+            base += 0.18
+        if "Avoidant" in attachment:
+            base -= 0.12
+        base += max(0.0, float(state.get("favorability", 0)) - 45) / 180
+        base += max(0.0, float(state.get("exploration", 0)) - 35) / 220
+        base -= max(0.0, float(state.get("defense_level", 0)) - 35) / 130
+        return max(0.05, min(0.82, base))
+
+    def timeline_event(self, state: Dict[str, Any]) -> str:
+        now = datetime.now()
+        last_npc = float(state.get("last_npc_at", 0) or 0)
+        last_user = float(state.get("last_user_at", 0) or 0)
+        idle_after_npc = max(0, int((time.time() - last_npc) / 60)) if last_npc >= last_user and last_npc else 0
+        inactive = max(0, int((time.time() - max(last_user, last_npc)) / 60))
+        hour = now.hour
+        if 7 <= hour < 10:
+            slot = "早上/通勤/早餐时间"
+        elif 11 <= hour < 14:
+            slot = "中午/午饭/午休前后"
+        elif 17 <= hour < 20:
+            slot = "傍晚/下班/晚饭时间"
+        elif 22 <= hour or hour < 1:
+            slot = "深夜/睡前/情绪更松的时候"
+        else:
+            slot = "普通空闲时段"
+        return (
+            f"当前本地时间 {now.strftime('%Y-%m-%d %H:%M')}，时间段是{slot}。"
+            f"距离你上一条消息后她已经等了约 {idle_after_npc} 分钟；"
+            f"距离最近一次互动约 {inactive} 分钟。"
+            "请她根据自己的人格、主动性、好感、防御、最近聊天和这个时间段，决定并发出一条自然主动消息。"
+            "可以关心、试探、随手分享、轻轻追问，也可以低热度开话题；不要模板化，不要像闹钟。"
+        )
 
     def print_reply(self, reply: str, turn: Dict[str, Any]) -> None:
         print()

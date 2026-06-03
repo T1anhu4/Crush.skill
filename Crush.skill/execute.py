@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.3.1 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.0 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import importlib.util
 import subprocess
@@ -97,6 +98,7 @@ class CrushSkillRuntime:
             "chat_import": self.chat_import_mode,
             "chat_turn": self.chat_turn,
             "record_reply": self.record_reply,
+            "proactive_prompt": self.proactive_prompt,
             "postmortem": self.postmortem,
             "timeline_append": self.timeline_append,
             "dashboard": self.dashboard,
@@ -288,6 +290,7 @@ class CrushSkillRuntime:
         state = CoreState.from_dict(session["state"])
         canonical = session["canonical_archetype"]
         analysis = analyze_text(message)
+        self._apply_contextual_adjustments(session_id, message, analysis)
         calculated = self.state_engine.apply_turn(state, profile, canonical, analysis, session_id=session_id)
         self.memory.append_episode(session_id, "user", message, tags=calculated["tags"],
             meta={"analysis": calculated["analysis"]})
@@ -350,6 +353,35 @@ class CrushSkillRuntime:
             "recorded": True,
             "memory_summary": self.memory.sqlite.get_summary(session_id),
             "memory_backend": self.memory.status.to_dict(),
+        }
+
+    def proactive_prompt(self, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        session = self.memory.sqlite.load_session(session_id)
+        if not session:
+            raise ValueError(f"会话 '{session_id}' 不存在。先用 /start-crush 或 /import-chats 创建。")
+        state = CoreState.from_dict(session["state"])
+        persona_obj = self._load_persona_for_session(session)
+        event = payload.get("event", "时间自然流逝，她可以根据关系状态决定是否主动发一条消息。")
+        memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=event, limit=6)
+        memory_ctx["timeline"] = payload
+        runtime_prompt = self.persona.build_runtime_prompt(persona_obj, state.to_dict(), memory_ctx, "")
+        runtime_prompt += (
+            f"\n\n时间线背景: {event}\n\n"
+            "时间线主动消息规则:\n"
+            "- 你现在不是在回复对方刚发来的消息，而是在真实聊天时间线里主动发一条微信式消息。\n"
+            "- 只能输出一条自然消息，可以短、可以试探、可以只是轻轻开启话题。\n"
+            "- 不要像客服或日程提醒，不要固定模板，不要每次都问吃什么。\n"
+            "- 如果当前防御高或你本来不主动，消息要更克制，甚至像随手一问。\n"
+            "- 贴合当前时间段、你们的关系阶段、你的性格、最近记忆和你对对方的感觉。"
+        )
+        return {
+            "success": True,
+            "action": "proactive_prompt",
+            "session_id": session_id,
+            "runtime_prompt": runtime_prompt,
+            "event": event,
+            "state": state.to_dict(),
+            "profile": session["profile"],
         }
 
     # ── Slash Command: /crush-dashboard ────────────────────────────
@@ -497,6 +529,51 @@ class CrushSkillRuntime:
         except Exception:
             return self.persona.from_preset("experience")
 
+    def _apply_contextual_adjustments(self, session_id: str, message: str, analysis: Any) -> None:
+        nickname_signal = self._nickname_boundary_signal(message)
+        if not nickname_signal:
+            return
+
+        recent = self.memory.sqlite.get_recent_episodes(session_id, limit=12)
+        recent_user = [item["content"] for item in recent if item.get("role") == "user"]
+        repeat_count = sum(1 for content in recent_user if self._nickname_boundary_signal(content))
+
+        pressure = min(1.0, 0.42 + repeat_count * 0.18)
+        neediness = min(1.0, 0.48 + repeat_count * 0.2)
+        attachment = min(1.0, 0.35 + repeat_count * 0.18)
+
+        analysis.neediness_score = max(analysis.neediness_score, neediness)
+        analysis.pressure_score = max(analysis.pressure_score, pressure)
+        analysis.attachment_trigger_score = max(analysis.attachment_trigger_score, attachment)
+        analysis.playfulness_score = min(analysis.playfulness_score, 0.35)
+        analysis.surface_intent = "昵称边界确认"
+        analysis.deep_need = "想快速获得亲密许可和关系确认"
+        analysis.emotional_state = "anxious"
+        analysis.test_flag = True
+        analysis.test_type = "pace_boundary_test"
+        analysis.subtext = "表面是在问能不能这么叫，实际是在索取亲密身份许可；反复问会让对方感觉被推进或被拿捏。"
+        analysis.reply_strategy = "对方应轻轻设边界或降温，不要立刻给很高亲密授权。"
+        analysis.implied_boundary = "亲昵称呼推进过快，需要降速"
+        for tag in ["nickname_boundary", "neediness", "pace"]:
+            if tag not in analysis.register_tags:
+                analysis.register_tags.append(tag)
+        note = f"昵称/亲属称呼边界试探，近期重复 {repeat_count + 1} 次"
+        if note not in analysis.notes:
+            analysis.notes.append(note)
+        analysis.bounded()
+
+    def _nickname_boundary_signal(self, text: str) -> bool:
+        normalized = re.sub(r"\s+", "", text)
+        nickname_words = (
+            "老婆", "老公", "宝宝", "宝贝", "乖乖", "姐姐", "妹妹", "哥哥", "妹妹",
+            "小朋友", "小孩", "崽", "宝", "亲爱的", "媳妇", "夫人", "主人",
+        )
+        asks_permission = re.search(r"(能不能|可不可以|可以吗|行不行|好不好|允许|同意|介意|不介意)", normalized)
+        call_intent = re.search(r"(叫你|喊你|称呼你|这么叫|这样叫|以后叫|我叫|叫.*可以|叫.*行)", normalized)
+        contains_nickname = any(word in normalized for word in nickname_words)
+        resistance_probe = re.search(r"(为什么不|真的不行|不喜欢我.*叫|不能这么叫|你不让|那我还能叫)", normalized)
+        return bool((asks_permission and (call_intent or contains_nickname)) or (call_intent and contains_nickname) or resistance_probe)
+
     def _agent_contract(self) -> Dict[str, Any]:
         return {
             "mode": "roleplay_only",
@@ -583,7 +660,7 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.3.1")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.0")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")
