@@ -14,13 +14,297 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import quote, urlparse, urlunparse
 from urllib.request import Request, urlopen
+
+try:
+    import termios
+    import tty
+except ImportError:  # pragma: no cover - Windows fallback
+    termios = None  # type: ignore
+    tty = None  # type: ignore
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "Crush.skill"
 DEFAULT_HOME = Path(os.environ.get("CRUSH_HOME", "~/.crush")).expanduser()
+
+
+SUPPORTED_LANGUAGES: list[dict[str, str]] = [
+    {"code": "en", "name": "English", "native": "English"},
+    {"code": "zh-Hans", "name": "Simplified Chinese", "native": "简体中文"},
+    {"code": "zh-Hant", "name": "Traditional Chinese", "native": "繁體中文"},
+    {"code": "ru", "name": "Russian", "native": "Русский"},
+    {"code": "ja", "name": "Japanese", "native": "日本語"},
+]
+
+LANG: dict[str, dict[str, str]] = {
+    "en": {
+        "tagline": "Relationship Persona Simulation Engine",
+        "memory": "Local memory: {path}",
+        "hint": "Type /help for commands. Type naturally to chat.",
+        "no_model": "No chat model configured yet. Starting model setup wizard...",
+        "bye": "Session saved locally. Keep practicing with care.",
+        "unknown": "Unknown command: {cmd}. Try /help.",
+        "commands": "Commands",
+        "setup": "configure chat model with guided picker",
+        "language_cmd": "change interface language",
+        "model_cmd": "change model provider, model, base URL, and API key",
+        "start_cmd": "create/reset current persona session",
+        "import_cmd": "import chat records; omit file to paste multiline text",
+        "sessions_cmd": "list local sessions",
+        "use_cmd": "switch session",
+        "dashboard_cmd": "show relationship state",
+        "postmortem_cmd": "relationship replay report",
+        "stop_cmd": "pause timeline and proactive messages",
+        "continue_cmd": "resume timeline and proactive messages",
+        "config_cmd": "advanced raw config editing",
+        "where_cmd": "show local config and memory paths",
+        "quit_cmd": "exit",
+        "model_title": "Model Setup",
+        "language_title": "Language",
+        "select_provider": "Choose a model provider",
+        "select_language": "Choose interface language",
+        "custom_base": "Custom OpenAI-compatible base URL",
+        "model_name_prompt": "Model name [{default}]: ",
+        "base_prompt": "API base URL [{default}]: ",
+        "key_prompt": "API key: ",
+        "model_saved": "Model config saved: {provider} / {model}",
+        "language_saved": "Language saved: {language}",
+        "arrow_hint": "Use ↑/↓ and Enter. Press Esc to cancel.",
+        "number_hint": "Enter a number and press Enter.",
+        "provider_note": "Provider: {name}\nBase URL: {base}\nTip: {tip}",
+        "custom_tip": "Paste the provider's OpenAI-compatible endpoint, usually ending with /v1.",
+        "model_tip": "Enter the exact model id from your provider dashboard, for example gpt-4o-mini or deepseek-chat.",
+        "key_tip": "Paste your API key. Input is hidden when your terminal supports it.",
+        "model_missing_once": "Model not configured. Run /model to configure a provider.",
+        "runtime_preview": "Hidden runtime prompt preview:",
+        "spinner_state": "Reading memory, updating state, sensing subtext...",
+        "spinner_reply": "Letting the persona answer...",
+        "turn_saved_after_error": "This user message was saved locally; fix model config and keep going.",
+        "timeline_paused": "Timeline paused. Use /continue to resume time progression.",
+        "timeline_resumed": "Timeline resumed. She may message proactively when it feels natural.",
+        "readout": "Readout",
+        "risk": "risk",
+        "judgment": "Signal",
+        "next_line": "Next move",
+        "time_passes": "time passes",
+    },
+    "zh-Hans": {
+        "tagline": "关系人格模拟与聊天训练引擎",
+        "memory": "本地记忆: {path}",
+        "hint": "输入 /help 查看命令。也可以直接自然聊天。",
+        "no_model": "还没有配置聊天模型，正在进入模型配置向导...",
+        "bye": "会话已保存。愿你把学到的东西带回现实。",
+        "unknown": "未知命令: {cmd}。试试 /help。",
+        "commands": "命令",
+        "setup": "使用向导配置聊天模型",
+        "language_cmd": "切换界面语言",
+        "model_cmd": "修改模型厂商、模型名、Base URL 和 API Key",
+        "start_cmd": "创建/重置当前人格会话",
+        "import_cmd": "导入聊天记录；不传文件则粘贴多行文本",
+        "sessions_cmd": "列出本地会话",
+        "use_cmd": "切换会话",
+        "dashboard_cmd": "查看关系状态",
+        "postmortem_cmd": "关系复盘报告",
+        "stop_cmd": "暂停时间线和主动消息",
+        "continue_cmd": "继续时间线和主动消息",
+        "config_cmd": "高级原始配置编辑",
+        "where_cmd": "显示本地配置和记忆路径",
+        "quit_cmd": "退出",
+        "model_title": "模型配置",
+        "language_title": "语言",
+        "select_provider": "选择模型厂商",
+        "select_language": "选择界面语言",
+        "custom_base": "自定义 OpenAI-compatible Base URL",
+        "model_name_prompt": "模型名称 [{default}]: ",
+        "base_prompt": "API Base URL [{default}]: ",
+        "key_prompt": "API Key: ",
+        "model_saved": "模型配置已保存: {provider} / {model}",
+        "language_saved": "语言已保存: {language}",
+        "arrow_hint": "使用 ↑/↓ 和 Enter 选择，Esc 取消。",
+        "number_hint": "输入数字后回车。",
+        "provider_note": "厂商: {name}\nBase URL: {base}\n提示: {tip}",
+        "custom_tip": "粘贴服务商提供的 OpenAI-compatible endpoint，通常以 /v1 结尾。",
+        "model_tip": "填写服务商后台的准确模型 id，比如 gpt-4o-mini 或 deepseek-chat。",
+        "key_tip": "粘贴 API Key；终端支持时会隐藏输入。",
+        "model_missing_once": "还没有配置模型。请运行 /model 配置厂商。",
+        "runtime_preview": "隐藏 runtime prompt 预览:",
+        "spinner_state": "读取记忆、更新状态、感知潜台词...",
+        "spinner_reply": "让人格自然回应...",
+        "turn_saved_after_error": "这次用户消息已写入本地记忆；修好模型配置后可以继续聊。",
+        "timeline_paused": "时间线已暂停。使用 /continue 恢复。",
+        "timeline_resumed": "时间线已继续。她会在自然时机主动发消息。",
+        "readout": "读秒",
+        "risk": "风险",
+        "judgment": "判断",
+        "next_line": "下一句",
+        "time_passes": "时间流逝",
+    },
+    "zh-Hant": {
+        "tagline": "關係人格模擬與聊天訓練引擎",
+        "memory": "本地記憶: {path}",
+        "hint": "輸入 /help 查看命令。也可以直接自然聊天。",
+        "no_model": "尚未配置聊天模型，正在進入模型配置嚮導...",
+        "bye": "會話已保存。願你把學到的東西帶回現實。",
+        "unknown": "未知命令: {cmd}。試試 /help。",
+        "commands": "命令",
+        "setup": "使用嚮導配置聊天模型",
+        "language_cmd": "切換介面語言",
+        "model_cmd": "修改模型廠商、模型名、Base URL 和 API Key",
+        "start_cmd": "建立/重置目前人格會話",
+        "import_cmd": "匯入聊天記錄；不傳文件則貼上多行文本",
+        "sessions_cmd": "列出本地會話",
+        "use_cmd": "切換會話",
+        "dashboard_cmd": "查看關係狀態",
+        "postmortem_cmd": "關係復盤報告",
+        "stop_cmd": "暫停時間線和主動消息",
+        "continue_cmd": "繼續時間線和主動消息",
+        "config_cmd": "進階原始配置編輯",
+        "where_cmd": "顯示本地配置和記憶路徑",
+        "quit_cmd": "退出",
+        "model_title": "模型配置",
+        "language_title": "語言",
+        "select_provider": "選擇模型廠商",
+        "select_language": "選擇介面語言",
+        "custom_base": "自訂 OpenAI-compatible Base URL",
+        "model_name_prompt": "模型名稱 [{default}]: ",
+        "base_prompt": "API Base URL [{default}]: ",
+        "key_prompt": "API Key: ",
+        "model_saved": "模型配置已保存: {provider} / {model}",
+        "language_saved": "語言已保存: {language}",
+        "arrow_hint": "使用 ↑/↓ 和 Enter 選擇，Esc 取消。",
+        "number_hint": "輸入數字後回車。",
+        "provider_note": "廠商: {name}\nBase URL: {base}\n提示: {tip}",
+        "custom_tip": "貼上服務商提供的 OpenAI-compatible endpoint，通常以 /v1 結尾。",
+        "model_tip": "填寫服務商後台的準確模型 id，比如 gpt-4o-mini 或 deepseek-chat。",
+        "key_tip": "貼上 API Key；終端支援時會隱藏輸入。",
+        "model_missing_once": "尚未配置模型。請執行 /model 配置廠商。",
+        "runtime_preview": "隱藏 runtime prompt 預覽:",
+        "spinner_state": "讀取記憶、更新狀態、感知潛台詞...",
+        "spinner_reply": "讓人格自然回應...",
+        "turn_saved_after_error": "這次用戶消息已寫入本地記憶；修好模型配置後可以繼續聊。",
+        "timeline_paused": "時間線已暫停。使用 /continue 恢復。",
+        "timeline_resumed": "時間線已繼續。她會在自然時機主動發消息。",
+        "readout": "讀秒",
+        "risk": "風險",
+        "judgment": "判斷",
+        "next_line": "下一句",
+        "time_passes": "時間流逝",
+    },
+    "ru": {
+        "tagline": "Engine for Relationship Persona Simulation",
+        "memory": "Local memory: {path}",
+        "hint": "Type /help for commands. Chat naturally.",
+        "no_model": "No chat model configured. Starting model setup wizard...",
+        "bye": "Session saved locally. Practice kindly.",
+        "unknown": "Unknown command: {cmd}. Try /help.",
+        "commands": "Commands",
+        "setup": "configure chat model with guided picker",
+        "language_cmd": "change interface language",
+        "model_cmd": "change model provider, model, base URL, and API key",
+        "start_cmd": "create/reset current persona session",
+        "import_cmd": "import chat records",
+        "sessions_cmd": "list local sessions",
+        "use_cmd": "switch session",
+        "dashboard_cmd": "show relationship state",
+        "postmortem_cmd": "relationship replay report",
+        "stop_cmd": "pause timeline",
+        "continue_cmd": "resume timeline",
+        "config_cmd": "advanced raw config editing",
+        "where_cmd": "show local paths",
+        "quit_cmd": "exit",
+        "model_title": "Model Setup",
+        "language_title": "Language",
+        "select_provider": "Choose a model provider",
+        "select_language": "Choose interface language",
+        "custom_base": "Custom OpenAI-compatible base URL",
+        "model_name_prompt": "Model name [{default}]: ",
+        "base_prompt": "API base URL [{default}]: ",
+        "key_prompt": "API key: ",
+        "model_saved": "Model config saved: {provider} / {model}",
+        "language_saved": "Language saved: {language}",
+        "arrow_hint": "Use ↑/↓ and Enter. Esc cancels.",
+        "number_hint": "Enter a number and press Enter.",
+        "provider_note": "Provider: {name}\nBase URL: {base}\nTip: {tip}",
+        "custom_tip": "Paste an OpenAI-compatible endpoint, usually ending with /v1.",
+        "model_tip": "Enter the exact model id from your provider dashboard.",
+        "key_tip": "Paste your API key. Input is hidden when supported.",
+        "model_missing_once": "Model not configured. Run /model.",
+        "runtime_preview": "Hidden runtime prompt preview:",
+        "spinner_state": "Reading memory and subtext...",
+        "spinner_reply": "Letting the persona answer...",
+        "turn_saved_after_error": "Message saved locally; fix model config and continue.",
+        "timeline_paused": "Timeline paused. Use /continue to resume.",
+        "timeline_resumed": "Timeline resumed.",
+        "readout": "Readout",
+        "risk": "risk",
+        "judgment": "Signal",
+        "next_line": "Next move",
+        "time_passes": "time passes",
+    },
+    "ja": {
+        "tagline": "Relationship Persona Simulation Engine",
+        "memory": "Local memory: {path}",
+        "hint": "/help でコマンド表示。自然に会話できます。",
+        "no_model": "チャットモデル未設定です。設定ウィザードを開始します...",
+        "bye": "セッションを保存しました。現実でも丁寧に練習していきましょう。",
+        "unknown": "不明なコマンド: {cmd}。/help を試してください。",
+        "commands": "Commands",
+        "setup": "モデル設定ウィザード",
+        "language_cmd": "表示言語を変更",
+        "model_cmd": "モデルプロバイダー、モデル名、Base URL、API Key を変更",
+        "start_cmd": "現在の人格セッションを作成/リセット",
+        "import_cmd": "チャット履歴をインポート",
+        "sessions_cmd": "ローカルセッション一覧",
+        "use_cmd": "セッション切替",
+        "dashboard_cmd": "関係状態を表示",
+        "postmortem_cmd": "関係リプレイレポート",
+        "stop_cmd": "タイムライン停止",
+        "continue_cmd": "タイムライン再開",
+        "config_cmd": "高度な直接設定",
+        "where_cmd": "ローカルパス表示",
+        "quit_cmd": "終了",
+        "model_title": "Model Setup",
+        "language_title": "Language",
+        "select_provider": "モデルプロバイダーを選択",
+        "select_language": "表示言語を選択",
+        "custom_base": "Custom OpenAI-compatible Base URL",
+        "model_name_prompt": "Model name [{default}]: ",
+        "base_prompt": "API base URL [{default}]: ",
+        "key_prompt": "API key: ",
+        "model_saved": "モデル設定を保存しました: {provider} / {model}",
+        "language_saved": "言語を保存しました: {language}",
+        "arrow_hint": "↑/↓ と Enter で選択。Esc でキャンセル。",
+        "number_hint": "番号を入力して Enter。",
+        "provider_note": "Provider: {name}\nBase URL: {base}\nTip: {tip}",
+        "custom_tip": "OpenAI-compatible endpoint を貼り付けてください。通常 /v1 で終わります。",
+        "model_tip": "プロバイダー画面の正確な model id を入力してください。",
+        "key_tip": "API Key を貼り付けてください。対応端末では入力は非表示です。",
+        "model_missing_once": "モデル未設定です。/model を実行してください。",
+        "runtime_preview": "Hidden runtime prompt preview:",
+        "spinner_state": "記憶とサブテキストを読み取り中...",
+        "spinner_reply": "人格に返信させています...",
+        "turn_saved_after_error": "メッセージは保存されました。設定を直して続行できます。",
+        "timeline_paused": "タイムラインを停止しました。/continue で再開。",
+        "timeline_resumed": "タイムラインを再開しました。",
+        "readout": "Readout",
+        "risk": "risk",
+        "judgment": "Signal",
+        "next_line": "Next move",
+        "time_passes": "time passes",
+    },
+}
+
+PROVIDERS: list[dict[str, str]] = [
+    {"id": "openai", "name": "OpenAI", "base": "https://api.openai.com/v1", "model": "gpt-4o-mini", "mode": "openai", "tip": "Use an OpenAI API key. Base URL is the standard Chat Completions endpoint."},
+    {"id": "claude", "name": "Claude / Anthropic", "base": "https://api.anthropic.com/v1", "model": "claude-3-5-haiku-latest", "mode": "anthropic", "tip": "Use an Anthropic API key. Crush will call the Messages API directly."},
+    {"id": "gemini", "name": "Gemini / Google", "base": "https://generativelanguage.googleapis.com/v1beta", "model": "gemini-1.5-flash", "mode": "gemini", "tip": "Use a Google AI Studio API key. Crush will call generateContent directly."},
+    {"id": "deepseek", "name": "DeepSeek", "base": "https://api.deepseek.com", "model": "deepseek-chat", "mode": "openai", "tip": "Use a DeepSeek API key. deepseek-chat is a safe default; you can type another model id."},
+    {"id": "kimi", "name": "Kimi / Moonshot", "base": "https://api.moonshot.cn/v1", "model": "kimi-k2-0711-preview", "mode": "openai", "tip": "Use a Moonshot API key. Change the model name if your account uses another Kimi model."},
+    {"id": "qwen", "name": "Qwen / DashScope", "base": "https://dashscope.aliyuncs.com/compatible-mode/v1", "model": "qwen-plus", "mode": "openai", "tip": "Use a DashScope API key. This endpoint is OpenAI-compatible."},
+    {"id": "custom", "name": "Custom", "base": "https://api.openai.com/v1", "model": "gpt-4o-mini", "mode": "openai", "tip": "Use this for OpenAI-compatible proxies or local gateways."},
+]
 
 
 class C:
@@ -46,6 +330,88 @@ def visible_len(text: str) -> int:
 
 def wrap(text: str, width: int = 78) -> str:
     return "\n".join(textwrap.wrap(text, width=width, replace_whitespace=False)) or text
+
+
+def tr(lang: str, key: str, **kwargs: Any) -> str:
+    template = LANG.get(lang, LANG["en"]).get(key, LANG["en"].get(key, key))
+    return template.format(**kwargs) if kwargs else template
+
+
+def provider_by_id(provider_id: str) -> dict[str, str]:
+    for provider in PROVIDERS:
+        if provider["id"] == provider_id:
+            return provider
+    return PROVIDERS[0]
+
+
+def supports_arrow_select() -> bool:
+    return bool(termios and tty and sys.stdin.isatty() and sys.stdout.isatty() and os.name != "nt")
+
+
+def read_key() -> str:
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+        if ch == "\x1b":
+            nxt = sys.stdin.read(1)
+            if nxt == "[":
+                return "\x1b[" + sys.stdin.read(1)
+            return "\x1b"
+        return ch
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def choose_option(title: str, prompt: str, options: list[dict[str, str]], *, plain: bool, lang: str, selected: int = 0) -> dict[str, str]:
+    if plain or not supports_arrow_select():
+        print(color(f"\n{title}", C.bold, not plain))
+        print(color(prompt, C.cyan, not plain))
+        for i, option in enumerate(options, start=1):
+            detail = option.get("native") or option.get("name", "")
+            print(f"  {i}. {option.get('name', detail)}" + (f" · {detail}" if detail and detail != option.get("name") else ""))
+        print(color(tr(lang, "number_hint"), C.dim, not plain))
+        while True:
+            raw = input("> ").strip()
+            if raw.isdigit() and 1 <= int(raw) <= len(options):
+                return options[int(raw) - 1]
+            print(color("Invalid selection.", C.red, not plain))
+
+    index = max(0, min(selected, len(options) - 1))
+    while True:
+        sys.stdout.write("\033[2J\033[H")
+        print(color(f"╭─ {title}", C.rose))
+        print(color(f"│ {prompt}", C.cyan))
+        print(color(f"│ {tr(lang, 'arrow_hint')}", C.dim))
+        print(color("╰" + "─" * 56, C.rose))
+        for i, option in enumerate(options):
+            pointer = "❯" if i == index else " "
+            marker = color(pointer, C.gold)
+            label = option.get("name", "")
+            native = option.get("native", "")
+            suffix = f" · {native}" if native and native != label else ""
+            print(f" {marker} {color(label + suffix, C.bold if i == index else C.slate)}")
+        key = read_key()
+        if key in {"\x1b[A", "k"}:
+            index = (index - 1) % len(options)
+        elif key in {"\x1b[B", "j"}:
+            index = (index + 1) % len(options)
+        elif key in {"\r", "\n"}:
+            sys.stdout.write("\033[2J\033[H")
+            return options[index]
+        elif key == "\x1b":
+            sys.stdout.write("\033[2J\033[H")
+            raise KeyboardInterrupt
+
+
+def animated_panel(title: str, lines: list[str], *, plain: bool) -> None:
+    print(color(f"\n╭─ {title}", C.rose, not plain))
+    for line in lines:
+        print(color("│ ", C.rose, not plain) + line)
+        if not plain:
+            time.sleep(0.035)
+    print(color("╰" + "─" * 56, C.rose, not plain))
 
 
 class Spinner:
@@ -130,19 +496,25 @@ def import_runtime(data_dir: Path):
 
 class ChatClient:
     def __init__(self, config: Dict[str, Any]) -> None:
+        configured_provider = config.get("provider", "")
+        provider = provider_by_id(configured_provider) if configured_provider else None
         self.api_key = (
             os.environ.get("CRUSH_CHAT_API_KEY")
             or os.environ.get("OPENAI_API_KEY")
             or config.get("api_key", "")
         )
+        self.provider = os.environ.get("CRUSH_CHAT_PROVIDER") or configured_provider or "openai"
+        self.provider_mode = os.environ.get("CRUSH_CHAT_PROVIDER_MODE") or config.get("provider_mode") or (provider or PROVIDERS[0])["mode"]
         self.api_base = normalize_api_base(
             os.environ.get("CRUSH_CHAT_API_BASE")
             or os.environ.get("OPENAI_API_BASE")
-            or config.get("api_base", "https://api.openai.com/v1")
+            or config.get("api_base")
+            or (provider or PROVIDERS[0])["base"]
         )
         self.model = (
             os.environ.get("CRUSH_CHAT_MODEL")
-            or config.get("model", "gpt-4o-mini")
+            or config.get("model")
+            or (provider or PROVIDERS[0])["model"]
         )
 
     @property
@@ -152,6 +524,13 @@ class ChatClient:
     def reply(self, runtime_prompt: str, user_message: str) -> str:
         if not self.api_key:
             raise RuntimeError("还没有配置模型 API Key。请使用 /setup 或 /config key <api_key>。")
+        if self.provider_mode == "anthropic":
+            return self._reply_anthropic(runtime_prompt, user_message)
+        if self.provider_mode == "gemini":
+            return self._reply_gemini(runtime_prompt, user_message)
+        return self._reply_openai(runtime_prompt, user_message)
+
+    def _reply_openai(self, runtime_prompt: str, user_message: str) -> str:
         req = Request(
             f"{self.api_base}/chat/completions",
             data=json.dumps(
@@ -185,6 +564,63 @@ class ChatClient:
         except json.JSONDecodeError as exc:
             raise ModelError("模型服务返回了非 JSON 响应，请检查 API base 是否是 OpenAI-compatible Chat Completions 地址。") from exc
         return data["choices"][0]["message"]["content"].strip()
+
+    def _reply_anthropic(self, runtime_prompt: str, user_message: str) -> str:
+        req = Request(
+            f"{self.api_base}/messages",
+            data=json.dumps(
+                {
+                    "model": self.model,
+                    "system": runtime_prompt + "\n\nOnly output this person's chat reply. Do not explain.",
+                    "messages": [{"role": "user", "content": user_message}],
+                    "temperature": 0.82,
+                    "max_tokens": 420,
+                },
+                ensure_ascii=False,
+            ).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+            },
+        )
+        try:
+            data = json.loads(urlopen(req, timeout=60).read().decode("utf-8"))
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise ModelError(_format_http_error(exc.code, self.api_base, self.model, body)) from exc
+        except URLError as exc:
+            raise ModelError(f"模型服务连接失败：{exc.reason}") from exc
+        content = data.get("content", [])
+        text = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+        return text.strip()
+
+    def _reply_gemini(self, runtime_prompt: str, user_message: str) -> str:
+        model_path = quote(self.model, safe="")
+        req = Request(
+            f"{self.api_base}/models/{model_path}:generateContent?key={quote(self.api_key, safe='')}",
+            data=json.dumps(
+                {
+                    "system_instruction": {"parts": [{"text": runtime_prompt + "\n\nOnly output this person's chat reply. Do not explain."}]},
+                    "contents": [{"role": "user", "parts": [{"text": user_message}]}],
+                    "generationConfig": {"temperature": 0.82, "maxOutputTokens": 420},
+                },
+                ensure_ascii=False,
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            data = json.loads(urlopen(req, timeout=60).read().decode("utf-8"))
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise ModelError(_format_http_error(exc.code, self.api_base, self.model, body)) from exc
+        except URLError as exc:
+            raise ModelError(f"模型服务连接失败：{exc.reason}") from exc
+        candidates = data.get("candidates", [])
+        if not candidates:
+            return ""
+        parts = candidates[0].get("content", {}).get("parts", [])
+        return "".join(part.get("text", "") for part in parts if isinstance(part, dict)).strip()
 
 
 def _format_http_error(code: int, api_base: str, model: str, body: str) -> str:
@@ -226,6 +662,7 @@ class CrushCLI:
             self.config["api_key"] = args.api_key
         self.data_dir = Path(args.data_dir or self.config.get("data_dir") or self.home / "data").expanduser()
         self.session_id = self.config.get("session_id", "default")
+        self.lang = self.config.get("language", "en")
         self.plain = bool(args.plain)
         self.once_message = args.message
         self.runtime = import_runtime(self.data_dir)
@@ -234,19 +671,28 @@ class CrushCLI:
         self.timeline_thread: threading.Thread | None = None
         self.print_lock = threading.Lock()
 
+    def t(self, key: str, **kwargs: Any) -> str:
+        return tr(self.lang, key, **kwargs)
+
     def run(self) -> int:
         self.intro()
         self.ensure_session()
         if self.once_message:
             self.chat(self.once_message)
             return 0
+        if not self.client.ready and sys.stdin.isatty():
+            print(color(self.t("no_model"), C.gold, not self.plain))
+            try:
+                self.model_wizard(first_run=True)
+            except KeyboardInterrupt:
+                print(color(self.t("model_missing_once"), C.gold, not self.plain))
         self.start_timeline()
         try:
             while True:
                 try:
                     raw = input(color(f"\n{self.session_id} › ", C.rose, not self.plain)).strip()
                 except (EOFError, KeyboardInterrupt):
-                    print("\n" + color("愿你带着学到的东西往前走。", C.dim, not self.plain))
+                    print("\n" + color(self.t("bye"), C.dim, not self.plain))
                     return 0
                 if not raw:
                     continue
@@ -274,11 +720,9 @@ class CrushCLI:
             if not self.plain:
                 time.sleep(0.035)
         print()
-        print(color("Relationship Persona Simulation Engine", C.bold, not self.plain))
-        print(color(f"Local memory: {self.data_dir}", C.dim, not self.plain))
-        print(color("Type /help for commands. Type naturally to chat.", C.dim, not self.plain))
-        if not self.client.ready:
-            print(color("No chat model key configured yet. Run /setup before real dialogue.", C.gold, not self.plain))
+        print(color(self.t("tagline"), C.bold, not self.plain))
+        print(color(self.t("memory", path=self.data_dir), C.dim, not self.plain))
+        print(color(self.t("hint"), C.dim, not self.plain))
 
     def ensure_session(self) -> None:
         session = self.runtime.memory.sqlite.load_session(self.session_id)
@@ -296,12 +740,14 @@ class CrushCLI:
         args = parts[1:]
         try:
             if cmd in {"/q", "/quit", "/exit"}:
-                print(color("Session saved locally. See you next turn.", C.dim, not self.plain))
+                print(color(self.t("bye"), C.dim, not self.plain))
                 return False
             if cmd == "/help":
                 self.help()
-            elif cmd == "/setup":
-                self.setup()
+            elif cmd in {"/setup", "/model"}:
+                self.model_wizard(first_run=False)
+            elif cmd in {"/language", "/laguage"}:
+                self.language_wizard()
             elif cmd == "/config":
                 self.config_command(args)
             elif cmd == "/start":
@@ -323,43 +769,78 @@ class CrushCLI:
             elif cmd == "/where":
                 self.where()
             else:
-                print(color(f"Unknown command: {cmd}. Try /help.", C.red, not self.plain))
+                print(color(self.t("unknown", cmd=cmd), C.red, not self.plain))
         except Exception as exc:
             print(color(f"Error: {exc}", C.red, not self.plain))
         return True
 
     def help(self) -> None:
         rows = [
-            ("/setup", "configure OpenAI-compatible chat model"),
-            ("/start [archetype] [name]", "create/reset current persona session"),
-            ("/import [file]", "import chat records; omit file to paste multiline text"),
-            ("/sessions", "list local sessions"),
-            ("/use <session_id>", "switch session"),
-            ("/dashboard", "show relationship state"),
-            ("/postmortem", "relationship replay report"),
-            ("/stop", "pause timeline and proactive messages"),
-            ("/continue", "resume timeline and proactive messages"),
-            ("/config model|base|key <value>", "update local model config"),
-            ("/where", "show local config and memory paths"),
-            ("/quit", "exit"),
+            ("/model", self.t("model_cmd")),
+            ("/language", self.t("language_cmd")),
+            ("/setup", self.t("setup")),
+            ("/start [archetype] [name]", self.t("start_cmd")),
+            ("/import [file]", self.t("import_cmd")),
+            ("/sessions", self.t("sessions_cmd")),
+            ("/use <session_id>", self.t("use_cmd")),
+            ("/dashboard", self.t("dashboard_cmd")),
+            ("/postmortem", self.t("postmortem_cmd")),
+            ("/stop", self.t("stop_cmd")),
+            ("/continue", self.t("continue_cmd")),
+            ("/config model|base|key <value>", self.t("config_cmd")),
+            ("/where", self.t("where_cmd")),
+            ("/quit", self.t("quit_cmd")),
         ]
-        print(color("\nCommands", C.bold, not self.plain))
+        print(color(f"\n{self.t('commands')}", C.bold, not self.plain))
         for name, desc in rows:
             print(f"  {color(name.ljust(30), C.cyan, not self.plain)} {desc}")
 
     def setup(self) -> None:
-        print(color("\nModel setup", C.bold, not self.plain))
-        base = normalize_api_base(input(f"API base [{self.client.api_base}]: ").strip() or self.client.api_base)
-        model = input(f"Model [{self.client.model}]: ").strip() or self.client.model
-        key = getpass.getpass("API key: ").strip()
-        self.config.update({"api_base": base, "model": model})
+        self.model_wizard(first_run=False)
+
+    def language_wizard(self) -> None:
+        selected = next((i for i, item in enumerate(SUPPORTED_LANGUAGES) if item["code"] == self.lang), 0)
+        choice = choose_option(self.t("language_title"), self.t("select_language"), SUPPORTED_LANGUAGES, plain=self.plain, lang=self.lang, selected=selected)
+        self.lang = choice["code"]
+        self.config["language"] = self.lang
+        save_config(self.config_file, self.config)
+        print(color(self.t("language_saved", language=choice["native"]), C.green, not self.plain))
+
+    def model_wizard(self, first_run: bool = False) -> None:
+        provider_options = [{"id": item["id"], "name": item["name"], "native": ""} for item in PROVIDERS]
+        current_provider = self.config.get("provider", "openai")
+        selected = next((i for i, item in enumerate(PROVIDERS) if item["id"] == current_provider), 0)
+        provider_choice = choose_option(self.t("model_title"), self.t("select_provider"), provider_options, plain=self.plain, lang=self.lang, selected=selected)
+        provider = provider_by_id(provider_choice["id"])
+        base = provider["base"]
+        if provider["id"] == "custom":
+            animated_panel(self.t("custom_base"), [self.t("custom_tip")], plain=self.plain)
+            base = normalize_api_base(input(self.t("base_prompt", default=self.config.get("api_base", base))).strip() or self.config.get("api_base", base))
+        else:
+            animated_panel(
+                self.t("model_title"),
+                [self.t("provider_note", name=provider["name"], base=provider["base"], tip=provider["tip"])],
+                plain=self.plain,
+            )
+        default_model = self.config.get("model") if self.config.get("provider") == provider["id"] else provider["model"]
+        print(color(self.t("model_tip"), C.dim, not self.plain))
+        model = input(self.t("model_name_prompt", default=default_model)).strip() or default_model
+        print(color(self.t("key_tip"), C.dim, not self.plain))
+        key = getpass.getpass(self.t("key_prompt")).strip()
+        self.config.update({
+            "provider": provider["id"],
+            "provider_mode": provider["mode"],
+            "api_base": normalize_api_base(base),
+            "model": model,
+            "language": self.lang,
+        })
         if key:
             self.config["api_key"] = key
         self.config["session_id"] = self.session_id
         self.config["data_dir"] = str(self.data_dir)
         save_config(self.config_file, self.config)
         self.client = ChatClient(self.config)
-        print(color(f"Saved config: {self.config_file}", C.green, not self.plain))
+        print(color(self.t("model_saved", provider=provider["name"], model=model), C.green, not self.plain))
 
     def config_command(self, args: list[str]) -> None:
         if not args:
@@ -451,19 +932,19 @@ class CrushCLI:
         timeline = self.timeline_state()
         timeline["last_user_at"] = time.time()
         self.save_timeline_state(timeline)
-        with Spinner("Reading memory, updating state, sensing subtext...", enabled=not self.plain):
+        with Spinner(self.t("spinner_state"), enabled=not self.plain):
             turn = self.runtime.run("chat_turn", self.session_id, {"message": message})
         if not self.client.ready:
-            print(color("Model not configured. Run /setup or set OPENAI_API_KEY.", C.gold, not self.plain))
-            print(color("Hidden runtime prompt preview:", C.dim, not self.plain))
+            print(color(self.t("model_missing_once"), C.gold, not self.plain))
+            print(color(self.t("runtime_preview"), C.dim, not self.plain))
             print(wrap(turn["runtime_prompt"][:1200]))
             return
-        with Spinner("Letting the persona answer...", enabled=not self.plain):
+        with Spinner(self.t("spinner_reply"), enabled=not self.plain):
             try:
                 reply = self.client.reply(turn["runtime_prompt"], message)
             except ModelError as exc:
                 print(color(str(exc), C.red, not self.plain))
-                print(color("这次用户消息已经写入本地记忆；修好配置后可以继续聊。", C.dim, not self.plain))
+                print(color(self.t("turn_saved_after_error"), C.dim, not self.plain))
                 return
         self.runtime.run(
             "record_reply",
@@ -493,14 +974,14 @@ class CrushCLI:
         state = self.timeline_state()
         state["paused"] = True
         self.save_timeline_state(state)
-        print(color("Timeline paused. Use /continue to resume time progression.", C.gold, not self.plain))
+        print(color(self.t("timeline_paused"), C.gold, not self.plain))
 
     def continue_timeline(self) -> None:
         state = self.timeline_state()
         state["paused"] = False
         state["next_proactive_at"] = time.time() + min(90.0, self.sample_proactive_delay())
         self.save_timeline_state(state)
-        print(color("Timeline resumed. She may message proactively when it feels natural.", C.green, not self.plain))
+        print(color(self.t("timeline_resumed"), C.green, not self.plain))
 
     def timeline_state(self) -> Dict[str, Any]:
         all_states = self.config.setdefault("timeline", {})
@@ -557,7 +1038,7 @@ class CrushCLI:
         state["next_proactive_at"] = time.time() + self.sample_proactive_delay()
         self.save_timeline_state(state)
         with self.print_lock:
-            print(color("\n[time passes]", C.dim, not self.plain))
+            print(color(f"\n[{self.t('time_passes')}]", C.dim, not self.plain))
             self.print_reply(reply, {"relationship_vector": "时间线主动消息", "delta": {}})
             sys.stdout.write(color(f"\n{self.session_id} › ", C.rose, not self.plain))
             sys.stdout.flush()
@@ -649,12 +1130,12 @@ class CrushCLI:
             flags = coach.get("warning_flags", [])
             flag_text = f" · {'/'.join(flags[:2])}" if flags else ""
             print(color(
-                f"读秒: {coach.get('line_type')} · 风险 {coach.get('risk_level')} · {coach.get('should_flirt')}{flag_text}",
+                f"{self.t('readout')}: {coach.get('line_type')} · {self.t('risk')} {coach.get('risk_level')} · {coach.get('should_flirt')}{flag_text}",
                 C.gold,
                 not self.plain,
             ))
-            print(color(f"判断: {coach.get('interest_read')}", C.dim, not self.plain))
-            print(color(f"下一句: {coach.get('next_move')}", C.dim, not self.plain))
+            print(color(f"{self.t('judgment')}: {coach.get('interest_read')}", C.dim, not self.plain))
+            print(color(f"{self.t('next_line')}: {coach.get('next_move')}", C.dim, not self.plain))
         elif vector:
             short = f"{vector} · favorability {delta.get('favorability', 0):+} · defense {delta.get('defense_level', 0):+}"
             print(color(short, C.dim, not self.plain))

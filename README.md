@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.3"><img src="https://img.shields.io/badge/version-2.4.3-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4"><img src="https://img.shields.io/badge/version-2.4.4-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.3">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4">下载 Release</a>
 </p>
 
 ---
@@ -66,6 +66,17 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
 
 ---
+
+## v2.4.4 新能力：多语言和模型配置向导
+
+v2.4.4 重点优化首次安装后的产品体验，让新用户不用手动猜配置：
+
+- **默认英文界面**：新安装 CLI 默认使用英文，便于开源用户直接上手。
+- **多语言切换**：使用 `/language` 或兼容错拼 `/laguage`，通过 ↑/↓ 和 Enter 选择 English、简体中文、繁體中文、Русский、日本語。
+- **模型向导**：使用 `/model` 进入三层配置：模型厂商、模型名称、API Key。
+- **首次自动配置**：新用户第一次启动且没有模型配置时，会自动进入模型配置向导。
+- **厂商预设**：支持 OpenAI、Claude/Anthropic、Gemini/Google、DeepSeek、Kimi/Moonshot、Qwen/DashScope 和 Custom。
+- **真实 Provider Adapter**：Claude 走 Anthropic Messages API，Gemini 走 Google generateContent，OpenAI/DeepSeek/Kimi/Qwen 走 OpenAI-compatible Chat Completions。
 
 ## v2.4.3 新能力：关系读秒和真人压力层
 

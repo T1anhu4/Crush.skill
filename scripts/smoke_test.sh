@@ -61,6 +61,91 @@ except app.ModelError as exc:
 else:
     raise AssertionError("ModelError was not raised")
 PY
+"$PYTHON_BIN" - <<'PY' >/tmp/crush_cli_i18n_model.txt
+import builtins
+import getpass
+import json
+import shutil
+from pathlib import Path
+
+import crush_cli.app as app
+
+home = Path("/tmp/crush_cli_i18n_model")
+if home.exists():
+    shutil.rmtree(home)
+
+args = app.build_parser().parse_args([
+    "--plain",
+    "--home",
+    str(home),
+    "--data-dir",
+    str(home / "data"),
+    "--session",
+    "i18n_demo",
+])
+cli = app.CrushCLI(args)
+
+answers = iter(["2"])
+old_input = builtins.input
+builtins.input = lambda prompt="": next(answers)
+try:
+    cli.language_wizard()
+finally:
+    builtins.input = old_input
+
+answers = iter(["4", "deepseek-chat"])
+old_input = builtins.input
+old_getpass = getpass.getpass
+builtins.input = lambda prompt="": next(answers)
+getpass.getpass = lambda prompt="": "dummy-key"
+try:
+    cli.model_wizard()
+finally:
+    builtins.input = old_input
+    getpass.getpass = old_getpass
+
+saved = json.loads(cli.config_file.read_text())
+assert saved["language"] == "zh-Hans", saved
+assert saved["provider"] == "deepseek", saved
+assert saved["provider_mode"] == "openai", saved
+assert saved["api_base"] == "https://api.deepseek.com", saved
+assert saved["model"] == "deepseek-chat", saved
+assert saved["api_key"] == "dummy-key", saved
+
+class FakeAnthropic:
+    def read(self):
+        return json.dumps({"content": [{"type": "text", "text": "anthropic ok"}]}).encode()
+
+class FakeGemini:
+    def read(self):
+        return json.dumps({"candidates": [{"content": {"parts": [{"text": "gemini ok"}]}}]}).encode()
+
+calls = []
+def fake_urlopen(req, timeout=60):
+    calls.append(req.full_url)
+    if "anthropic" in req.full_url:
+        return FakeAnthropic()
+    return FakeGemini()
+
+app.urlopen = fake_urlopen
+anthropic = app.ChatClient({
+    "provider": "claude",
+    "provider_mode": "anthropic",
+    "api_base": "https://api.anthropic.com/v1",
+    "model": "claude-3-5-haiku-latest",
+    "api_key": "dummy",
+})
+gemini = app.ChatClient({
+    "provider": "gemini",
+    "provider_mode": "gemini",
+    "api_base": "https://generativelanguage.googleapis.com/v1beta",
+    "model": "gemini-1.5-flash",
+    "api_key": "dummy",
+})
+assert anthropic.reply("runtime", "hi") == "anthropic ok"
+assert gemini.reply("runtime", "hi") == "gemini ok"
+print("i18n/model ok")
+PY
 "$PYTHON_BIN" - <<'PY' >/tmp/crush_cli_proactive.txt
 import json
 import shutil
@@ -142,6 +227,7 @@ reject = json.loads(Path("/tmp/crush_pressure_reject.json").read_text())
 joke = json.loads(Path("/tmp/crush_pressure_joke.json").read_text())
 cli_output = Path("/tmp/crush_cli_smoke.txt").read_text()
 cli_429_output = Path("/tmp/crush_cli_429.txt").read_text()
+cli_i18n_model_output = Path("/tmp/crush_cli_i18n_model.txt").read_text()
 cli_proactive_output = Path("/tmp/crush_cli_proactive.txt").read_text()
 
 assert imported["success"], imported
@@ -172,7 +258,8 @@ assert "操控" in reject["coach"]["pressure_note"], reject["coach"]
 assert "rejection_tease" in joke["analysis"]["register_tags"], joke["analysis"]
 assert "Model not configured" in cli_output, cli_output
 assert "HTTP 429" in cli_429_output and "Traceback" not in cli_429_output, cli_429_output
+assert "i18n/model ok" in cli_i18n_model_output, cli_i18n_model_output
 assert "proactive ok" in cli_proactive_output, cli_proactive_output
 PY
 
-echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/nickname/symbolic/pressure/timeline/cli passed"
+echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/nickname/symbolic/pressure/i18n/model/timeline/cli passed"

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.3"><img src="https://img.shields.io/badge/version-2.4.3-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4"><img src="https://img.shields.io/badge/version-2.4.4-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.3">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4">Download Release</a>
 </p>
 
 ---
@@ -66,6 +66,17 @@ It turns the person you're interested in into a **5-layer personality model**. I
 > Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
 
 ---
+
+## v2.4.4: Multilingual UI and Model Setup Wizard
+
+v2.4.4 focuses on first-run product experience so open-source users do not have to guess configuration fields:
+
+- **English by default**: fresh CLI installs now default to English.
+- **Language switcher**: `/language` and typo-compatible `/laguage` open an arrow-key picker for English, 简体中文, 繁體中文, Русский, and 日本語.
+- **Model wizard**: `/model` walks through provider, model name, and API key.
+- **First-run setup**: if no model is configured, interactive CLI startup automatically enters the model setup wizard.
+- **Provider presets**: OpenAI, Claude/Anthropic, Gemini/Google, DeepSeek, Kimi/Moonshot, Qwen/DashScope, and Custom.
+- **Real provider adapters**: Claude uses Anthropic Messages API, Gemini uses Google generateContent, and OpenAI/DeepSeek/Kimi/Qwen use OpenAI-compatible Chat Completions.
 
 ## v2.4.3: Relationship Readout and Real-Stakes Persona Layer
 
