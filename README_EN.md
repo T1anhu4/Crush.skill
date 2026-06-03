@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.2"><img src="https://img.shields.io/badge/version-2.4.2-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.3"><img src="https://img.shields.io/badge/version-2.4.3-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.2">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.3">Download Release</a>
 </p>
 
 ---
@@ -66,6 +66,16 @@ It turns the person you're interested in into a **5-layer personality model**. I
 > Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
 
 ---
+
+## v2.4.3: Relationship Readout and Real-Stakes Persona Layer
+
+v2.4.3 moves Crush.skill from "persona chat" toward a relationship-literacy trainer:
+
+- **Relationship readout HUD**: each turn is classified as normal chat, flirt probe, validation seeking, intimacy escalation, hurtful push-pull, or boundary/soft decline.
+- **Real-stakes persona layer**: the persona is no longer endlessly accommodating and will not confirm "I like you" too quickly.
+- **Next-move coaching**: the CLI tells users whether to flirt, slow down, lower neediness, or switch to a concrete low-pressure topic.
+- **Classification foundation**: adds extensible reads for active/passive types, I/E tendency, friend-frame vs flirtation, slow-burn vs fishing, and material-request risk.
+- **Anti-manipulation stance**: risky push-pull is labeled as trust-damaging; the goal is literacy and boundaries, not manipulative tactics.
 
 ## v2.4.2: Timeline Background Thread Stability
 

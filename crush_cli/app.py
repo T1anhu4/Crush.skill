@@ -644,7 +644,18 @@ class CrushCLI:
         print(color("╰", C.rose, not self.plain))
         vector = turn.get("relationship_vector", "")
         delta = turn.get("delta", {})
-        if vector:
+        coach = turn.get("coach", {})
+        if coach:
+            flags = coach.get("warning_flags", [])
+            flag_text = f" · {'/'.join(flags[:2])}" if flags else ""
+            print(color(
+                f"读秒: {coach.get('line_type')} · 风险 {coach.get('risk_level')} · {coach.get('should_flirt')}{flag_text}",
+                C.gold,
+                not self.plain,
+            ))
+            print(color(f"判断: {coach.get('interest_read')}", C.dim, not self.plain))
+            print(color(f"下一句: {coach.get('next_move')}", C.dim, not self.plain))
+        elif vector:
             short = f"{vector} · favorability {delta.get('favorability', 0):+} · defense {delta.get('defense_level', 0):+}"
             print(color(short, C.dim, not self.plain))
 

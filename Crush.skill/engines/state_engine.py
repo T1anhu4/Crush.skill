@@ -180,6 +180,8 @@ class StateEngine:
             tag in analysis.register_tags
             for tag in ("nickname_boundary", "symbolic_naming", "assumed_intimacy", "pace")
         )
+        validation_pressure = "direct_validation" in analysis.register_tags
+        rejection_tease = "rejection_tease" in analysis.register_tags
         if pace_pressure:
             # Naming someone, asking for intimate nicknames, or assuming consent can
             # still be touching, but it should not create instant attraction spikes.
@@ -187,6 +189,16 @@ class StateEngine:
             exploration_delta = min(exploration_delta, 0.5)
             propulsion_delta = min(propulsion_delta, 1.0)
             defense_delta = max(defense_delta, 8.0 if analysis.pressure_score >= 0.55 else defense_delta)
+        if validation_pressure:
+            favorability_delta = clamp(favorability_delta, -8.0, 0.8)
+            exploration_delta = clamp(exploration_delta, -8.0, 0.0)
+            tension_delta = clamp(tension_delta, -4.0, 6.0)
+            defense_delta = max(defense_delta, 10.0)
+        if rejection_tease:
+            favorability_delta = min(favorability_delta, -10.0)
+            exploration_delta = min(exploration_delta, -8.0)
+            tension_delta = clamp(tension_delta + 8.0, -4.0, 12.0)
+            defense_delta = max(defense_delta, 14.0)
 
         # Human relationships wobble; they do not usually jump 20 points from one
         # playful line. These caps keep the dashboard from feeling game-like.
@@ -230,7 +242,10 @@ class StateEngine:
         if favorability_delta <= -10:
             triggered_tags.append("frame_collapse_risk")
         for tag in analysis.register_tags:
-            if tag in {"nickname_boundary", "symbolic_naming", "assumed_intimacy", "pace", "neediness"} and tag not in triggered_tags:
+            if tag in {
+                "nickname_boundary", "symbolic_naming", "assumed_intimacy", "pace", "neediness",
+                "direct_validation", "validation_pressure", "rejection_tease", "hurtful_pullback",
+            } and tag not in triggered_tags:
                 triggered_tags.append(tag)
 
         delta = {

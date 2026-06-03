@@ -24,6 +24,11 @@ export CRUSH_DATA_DIR="${CRUSH_DATA_DIR:-/tmp/crush_skill_smoke_data_$$}"
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id symbolic_demo --message '那可不是哦 你的名字对于我来说可不能随便是个代号 我叫你camellia吧' >/tmp/crush_symbolic_1.json
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id symbolic_demo --message '因为camellia直译过来是山茶花，山茶花的花语是理想的爱' >/tmp/crush_symbolic_2.json
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id symbolic_demo --message '你不拒绝 那我就叫你camellia啦' >/tmp/crush_symbolic_3.json
+"$PYTHON_BIN" "$SKILL" --action quick_start --session-id pressure_demo --config-json '{"archetype":"experience","gender":"female","relationship_stage":"暧昧期"}' >/tmp/crush_pressure_start.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id pressure_demo --message '你喜欢我吗' >/tmp/crush_pressure_like.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id pressure_demo --message '真话' >/tmp/crush_pressure_truth.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id pressure_demo --message '因为我不喜欢你' >/tmp/crush_pressure_reject.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id pressure_demo --message '逗逗你玩的' >/tmp/crush_pressure_joke.json
 CRUSH_HOME=/tmp/crush_cli_smoke "$PYTHON_BIN" -m crush_cli --plain --session cli_smoke --home /tmp/crush_cli_smoke --data-dir /tmp/crush_cli_smoke/data --message '今天有点想你' >/tmp/crush_cli_smoke.txt
 "$PYTHON_BIN" - <<'PY' >/tmp/crush_cli_429.txt
 import io
@@ -131,6 +136,10 @@ turn = json.loads(Path("/tmp/crush_import_chat_turn.json").read_text())
 recorded = json.loads(Path("/tmp/crush_record_reply.json").read_text())
 nickname = json.loads(Path("/tmp/crush_nickname_2.json").read_text())
 symbolic = json.loads(Path("/tmp/crush_symbolic_3.json").read_text())
+like = json.loads(Path("/tmp/crush_pressure_like.json").read_text())
+truth = json.loads(Path("/tmp/crush_pressure_truth.json").read_text())
+reject = json.loads(Path("/tmp/crush_pressure_reject.json").read_text())
+joke = json.loads(Path("/tmp/crush_pressure_joke.json").read_text())
 cli_output = Path("/tmp/crush_cli_smoke.txt").read_text()
 cli_429_output = Path("/tmp/crush_cli_429.txt").read_text()
 cli_proactive_output = Path("/tmp/crush_cli_proactive.txt").read_text()
@@ -151,9 +160,19 @@ assert symbolic["analysis"]["pressure_score"] >= 0.7, symbolic["analysis"]
 assert "symbolic_naming" in symbolic["analysis"]["register_tags"], symbolic["analysis"]
 assert "默认同意规则" in symbolic["runtime_prompt"], symbolic["runtime_prompt"]
 assert "最近逐字上下文" in symbolic["runtime_prompt"], symbolic["runtime_prompt"]
+assert "direct_validation" in like["analysis"]["register_tags"], like["analysis"]
+assert "direct_validation" in truth["analysis"]["register_tags"], truth["analysis"]
+assert like["coach"]["line_type"] == "索取确认", like["coach"]
+assert like["coach"]["risk_level"] in {"中高", "高"}, like["coach"]
+assert "不要直接给满分答案" in like["runtime_prompt"], like["runtime_prompt"]
+assert "rejection_tease" in reject["analysis"]["register_tags"], reject["analysis"]
+assert reject["coach"]["risk_level"] == "高", reject["coach"]
+assert "伤害性" in reject["coach"]["line_type"], reject["coach"]
+assert "操控" in reject["coach"]["pressure_note"], reject["coach"]
+assert "rejection_tease" in joke["analysis"]["register_tags"], joke["analysis"]
 assert "Model not configured" in cli_output, cli_output
 assert "HTTP 429" in cli_429_output and "Traceback" not in cli_429_output, cli_429_output
 assert "proactive ok" in cli_proactive_output, cli_proactive_output
 PY
 
-echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/nickname/symbolic/timeline/cli passed"
+echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/nickname/symbolic/pressure/timeline/cli passed"

@@ -3,6 +3,7 @@
 __all__ = [
     "archetype_engine",
     "chat_import",
+    "coach_engine",
     "defense_engine",
     "dialogue_analyzer",
     "memory_engine",

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.2 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.3 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -74,6 +74,7 @@ from engines.persona_engine import PersonaEngine
 from engines.dialogue_analyzer import analyze_text
 from engines.memory_backend import HybridMemoryBackend
 from engines.chat_import import ChatImporter
+from engines.coach_engine import RelationshipCoach
 from engines.reality_import_engine import RealityImportEngine
 from engines.replay_engine import ReplayEngine
 from engines.state_engine import StateEngine
@@ -88,6 +89,7 @@ class CrushSkillRuntime:
         self.reality_import = RealityImportEngine()
         self.chat_importer = ChatImporter()
         self.replay = ReplayEngine()
+        self.coach = RelationshipCoach()
 
     def run(self, action: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         action = (action or "").strip().lower()
@@ -288,12 +290,25 @@ class CrushSkillRuntime:
             boot_note = "Session auto-created via quick_start(experience)"
         profile = RelationshipProfile(**session["profile"])
         state = CoreState.from_dict(session["state"])
+        previous_state = CoreState.from_dict(state.to_dict())
         canonical = session["canonical_archetype"]
         analysis = analyze_text(message)
         self._apply_contextual_adjustments(session_id, message, analysis)
+        recent_before = self.memory.sqlite.get_recent_episodes(session_id, limit=10)
+        recent_user = [item["content"] for item in recent_before if item.get("role") == "user"]
         calculated = self.state_engine.apply_turn(state, profile, canonical, analysis, session_id=session_id)
+        coaching = self.coach.assess(
+            message,
+            analysis,
+            previous_state,
+            calculated["state"],
+            calculated["delta"],
+            profile,
+            canonical,
+            recent_user,
+        )
         self.memory.append_episode(session_id, "user", message, tags=calculated["tags"],
-            meta={"analysis": calculated["analysis"]})
+            meta={"analysis": calculated["analysis"], "coach": coaching.to_dict()})
         npc_reply = payload.get("npc_reply", "").strip()
         if npc_reply:
             self.memory.append_episode(session_id, "npc", npc_reply, tags=calculated["tags"], meta={})
@@ -323,6 +338,7 @@ class CrushSkillRuntime:
             "slang_hits": analysis.slang_hits,
             "implied_boundary": analysis.implied_boundary,
         }
+        memory_ctx["coach"] = coaching.to_dict()
         persona_obj = self._load_persona_for_session(session)
         runtime_prompt = self.persona.build_runtime_prompt(
             persona_obj, CoreState.from_dict(calculated["state"]).to_dict(), memory_ctx, message)
@@ -330,6 +346,7 @@ class CrushSkillRuntime:
                 "state": calculated["state"], "delta": calculated["delta"],
                 "defense": calculated["defense"], "analysis": calculated["analysis"],
                 "tags": calculated["tags"], "relationship_vector": calculated["relationship_vector"],
+                "coach": coaching.to_dict(),
                 "dashboard": self._dashboard(calculated["state"], calculated["delta"], calculated["tags"]),
                 "memory_context": memory_ctx, "memory_summary": self.memory.sqlite.get_summary(session_id),
                 "runtime_prompt": runtime_prompt,
@@ -535,6 +552,10 @@ class CrushSkillRuntime:
             return self.persona.from_preset("experience")
 
     def _apply_contextual_adjustments(self, session_id: str, message: str, analysis: Any) -> None:
+        if self._rejection_tease_signal(message):
+            self._apply_rejection_tease_adjustment(analysis)
+        if self._direct_validation_signal(session_id, message):
+            self._apply_direct_validation_adjustment(analysis)
         boundary_kind = self._intimacy_boundary_kind(message)
         if not boundary_kind:
             return
@@ -585,6 +606,62 @@ class CrushSkillRuntime:
         if note not in analysis.notes:
             analysis.notes.append(note)
         analysis.bounded()
+
+    def _apply_direct_validation_adjustment(self, analysis: Any) -> None:
+        analysis.neediness_score = max(analysis.neediness_score, 0.72)
+        analysis.pressure_score = max(analysis.pressure_score, 0.68)
+        analysis.attachment_trigger_score = max(analysis.attachment_trigger_score, 0.62)
+        analysis.playfulness_score = min(analysis.playfulness_score, 0.28)
+        analysis.valence = min(analysis.valence, 0.05)
+        analysis.surface_intent = "索取喜欢/关系确认"
+        analysis.deep_need = "想要对方给出明确喜欢和安全感"
+        analysis.emotional_state = "anxious"
+        analysis.test_flag = True
+        analysis.test_type = "validation_pressure"
+        analysis.subtext = "表面是在问真心话，实际是在把暧昧感变成一场考试；对方可能尴尬、防御或故意不给满分答案。"
+        analysis.reply_strategy = "对方不要直接给确定承诺，可以半开玩笑、躲一下、设一点边界，保留不确定性。"
+        analysis.implied_boundary = "不要逼问喜欢程度"
+        for tag in ["direct_validation", "validation_pressure", "neediness", "pace"]:
+            if tag not in analysis.register_tags:
+                analysis.register_tags.append(tag)
+        note = "直接索取喜欢确认，容易破坏张力"
+        if note not in analysis.notes:
+            analysis.notes.append(note)
+        analysis.bounded()
+
+    def _apply_rejection_tease_adjustment(self, analysis: Any) -> None:
+        analysis.valence = min(analysis.valence, -0.65)
+        analysis.pressure_score = max(analysis.pressure_score, 0.72)
+        analysis.attachment_trigger_score = max(analysis.attachment_trigger_score, 0.7)
+        analysis.playfulness_score = min(analysis.playfulness_score, 0.18)
+        analysis.surface_intent = "用拒绝制造拉扯"
+        analysis.deep_need = "想通过让对方失落来确认对方在乎"
+        analysis.emotional_state = "guarded"
+        analysis.test_flag = True
+        analysis.test_type = "hurtful_push_pull"
+        analysis.subtext = "这不是普通玩笑，会让对方感觉被戏弄或被否定；现实里容易伤信任。"
+        analysis.reply_strategy = "对方会被刺到一点，短暂变冷或反击，不会立刻恢复热情。"
+        analysis.implied_boundary = "不要用伤害性拒绝测试对方"
+        for tag in ["rejection_tease", "hurtful_pullback", "defense_triggered"]:
+            if tag not in analysis.register_tags:
+                analysis.register_tags.append(tag)
+        note = "伤害性拉扯：用不喜欢/拒绝来测试对方"
+        if note not in analysis.notes:
+            analysis.notes.append(note)
+        analysis.bounded()
+
+    def _direct_validation_signal(self, session_id: str, text: str) -> bool:
+        normalized = re.sub(r"\s+", "", text.lower())
+        if re.search(r"(你喜欢我吗|你喜不喜欢我|你是不是喜欢我|你对我有感觉吗|你到底喜不喜欢|你爱不爱我)", normalized):
+            return True
+        if normalized in {"真话", "说真话", "听真话", "真心话"}:
+            recent = self.memory.sqlite.get_recent_episodes(session_id, limit=6)
+            return any(self._direct_validation_signal("", item.get("content", "")) for item in recent if item.get("role") == "user")
+        return False
+
+    def _rejection_tease_signal(self, text: str) -> bool:
+        normalized = re.sub(r"\s+", "", text.lower())
+        return bool(re.search(r"(我不喜欢你|其实不喜欢你|没喜欢你|不喜欢你了|我就是想让你尴尬|逗你玩|逗逗你)", normalized))
 
     def _intimacy_boundary_kind(self, text: str) -> str:
         if self._symbolic_naming_signal(text):

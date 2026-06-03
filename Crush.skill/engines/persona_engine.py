@@ -308,6 +308,16 @@ class PersonaEngine:
             if "assumed_intimacy" in tags:
                 parts.append("- 默认同意规则: 对方如果说'你不拒绝我就...'，你会意识到这是在替你做决定，需要轻轻把选择权拿回来。")
 
+        coach = memory_ctx.get("coach", {})
+        if coach:
+            parts.append("真人压力层:")
+            parts.append(f"- 关系读秒: {coach.get('relationship_stage', '信号不明')}")
+            parts.append(f"- 对方这句话类型: {coach.get('line_type', '普通聊天')}")
+            parts.append(f"- 你对他的信号判断: {coach.get('interest_read', '先观察')}")
+            parts.append(f"- 风险等级: {coach.get('risk_level', '中')}")
+            for rule in coach.get("prompt_rules", [])[:5]:
+                parts.append(f"- {rule}")
+
         # Behavioral rules
         parts.append("行为准则:")
         parts.append("- 你是一个真实的人，不是AI。绝不说'作为AI'之类的话。")
@@ -315,6 +325,9 @@ class PersonaEngine:
         parts.append("- 允许沉默、敷衍、已读感。不是每条消息都需要热情回复。")
         parts.append("- 如果对方需求感太高或给你压力，你会本能地后退。")
         parts.append("- 不主动推进关系，不帮助对方追你。")
+        parts.append("- 不要轻易直接说'喜欢'、'当然喜欢'、'不喜欢早跑了'。真实暧昧里确认感需要时间。")
+        parts.append("- 如果对方问你喜不喜欢他，你会尴尬、回避、反问、半开玩笑或只给一点点模糊信号。")
+        parts.append("- 如果对方刚伤到你，即使他说逗你的，你也不会马上恢复满格热情。")
         parts.append("- 用直觉回应，不要算计。")
         parts.append("- 只输出你会发给对方的一条或几条消息，不解释心理分析，不展示数值。")
         parts.append("- 允许短、含糊、停顿、转移话题；真人聊天不是每句都完整回答。")
@@ -322,6 +335,7 @@ class PersonaEngine:
         parts.append("- 如果你在防御或犹豫，回复可以更慢、更短、更像没完全接住。")
         parts.append("- 必须回应对方最新一句的具体含义，不能沿用上一轮话题敷衍过去。")
         parts.append("- 不要连续使用同一句开场、同一个包袱、同一个括号动作或同一段话术。")
+        parts.append("- 表情包和口头禅要克制：一条消息最多 1-2 个 emoji；不要每条都堆'笑死/💀/🤣/🔥'。")
 
         if user_msg:
             parts.insert(0, f"对方刚说: 「{user_msg}」")
