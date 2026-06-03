@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import shlex
@@ -10,13 +11,14 @@ import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse, urlunparse
 from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "Crush.skill"
 DEFAULT_HOME = Path(os.environ.get("CRUSH_HOME", "~/.crush")).expanduser()
-CONFIG_FILE = DEFAULT_HOME / "config.json"
 
 
 class C:
@@ -77,18 +79,43 @@ class Spinner:
             self._thread.join(timeout=0.5)
 
 
-def load_config() -> Dict[str, Any]:
-    if not CONFIG_FILE.exists():
+class ModelError(RuntimeError):
+    pass
+
+
+def normalize_api_base(value: str) -> str:
+    base = (value or "").strip().rstrip("/")
+    if not base:
+        return "https://api.openai.com/v1"
+    if "://" not in base:
+        base = "https://" + base
+    parsed = urlparse(base)
+    host = parsed.netloc.lower()
+    path = parsed.path.rstrip("/")
+
+    if host == "platform.deepseek.com":
+        host = "api.deepseek.com"
+        path = ""
+    if host == "api.deepseek.com" and path == "/v1":
+        path = ""
+    if path.endswith("/chat/completions"):
+        path = path[: -len("/chat/completions")]
+
+    return urlunparse((parsed.scheme or "https", host or parsed.netloc, path, "", "", "")).rstrip("/")
+
+
+def load_config(config_file: Path) -> Dict[str, Any]:
+    if not config_file.exists():
         return {}
     try:
-        return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        return json.loads(config_file.read_text(encoding="utf-8"))
     except Exception:
         return {}
 
 
-def save_config(config: Dict[str, Any]) -> None:
-    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+def save_config(config_file: Path, config: Dict[str, Any]) -> None:
+    config_file.parent.mkdir(parents=True, exist_ok=True)
+    config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def import_runtime(data_dir: Path):
@@ -106,11 +133,11 @@ class ChatClient:
             or os.environ.get("OPENAI_API_KEY")
             or config.get("api_key", "")
         )
-        self.api_base = (
+        self.api_base = normalize_api_base(
             os.environ.get("CRUSH_CHAT_API_BASE")
             or os.environ.get("OPENAI_API_BASE")
             or config.get("api_base", "https://api.openai.com/v1")
-        ).rstrip("/")
+        )
         self.model = (
             os.environ.get("CRUSH_CHAT_MODEL")
             or config.get("model", "gpt-4o-mini")
@@ -146,13 +173,47 @@ class ChatClient:
                 "Authorization": f"Bearer {self.api_key}",
             },
         )
-        data = json.loads(urlopen(req, timeout=60).read().decode("utf-8"))
+        try:
+            data = json.loads(urlopen(req, timeout=60).read().decode("utf-8"))
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise ModelError(_format_http_error(exc.code, self.api_base, self.model, body)) from exc
+        except URLError as exc:
+            raise ModelError(f"模型服务连接失败：{exc.reason}") from exc
+        except json.JSONDecodeError as exc:
+            raise ModelError("模型服务返回了非 JSON 响应，请检查 API base 是否是 OpenAI-compatible Chat Completions 地址。") from exc
         return data["choices"][0]["message"]["content"].strip()
+
+
+def _format_http_error(code: int, api_base: str, model: str, body: str) -> str:
+    detail = _extract_error_message(body)
+    tips = {
+        401: "API key 无效或权限不足。请重新运行 /setup 或 /config key <new_key>。",
+        404: "接口地址或模型名可能不对。DeepSeek 请用 API base: https://api.deepseek.com。",
+        429: "请求过多、额度不足或触发限流。可以稍后重试，或检查服务商余额/并发限制。",
+    }
+    tip = tips.get(code, "请检查 API base、model、key 和服务商状态。")
+    return f"模型服务返回 HTTP {code}。\nAPI base: {api_base}\nModel: {model}\n{tip}" + (f"\nProvider message: {detail}" if detail else "")
+
+
+def _extract_error_message(body: str) -> str:
+    if not body:
+        return ""
+    try:
+        data = json.loads(body)
+    except Exception:
+        return body[:500]
+    err = data.get("error", data)
+    if isinstance(err, dict):
+        return str(err.get("message") or err.get("detail") or err)[:500]
+    return str(err)[:500]
 
 
 class CrushCLI:
     def __init__(self, args: argparse.Namespace) -> None:
-        self.config = load_config()
+        self.home = Path(args.home or DEFAULT_HOME).expanduser()
+        self.config_file = self.home / "config.json"
+        self.config = load_config(self.config_file)
         if args.session:
             self.config["session_id"] = args.session
         if args.model:
@@ -161,7 +222,6 @@ class CrushCLI:
             self.config["api_base"] = args.api_base
         if args.api_key:
             self.config["api_key"] = args.api_key
-        self.home = Path(args.home or self.config.get("home") or DEFAULT_HOME).expanduser()
         self.data_dir = Path(args.data_dir or self.config.get("data_dir") or self.home / "data").expanduser()
         self.session_id = self.config.get("session_id", "default")
         self.plain = bool(args.plain)
@@ -274,17 +334,17 @@ class CrushCLI:
 
     def setup(self) -> None:
         print(color("\nModel setup", C.bold, not self.plain))
-        base = input(f"API base [{self.client.api_base}]: ").strip() or self.client.api_base
+        base = normalize_api_base(input(f"API base [{self.client.api_base}]: ").strip() or self.client.api_base)
         model = input(f"Model [{self.client.model}]: ").strip() or self.client.model
-        key = input("API key (input hidden is not available in this simple CLI): ").strip()
+        key = getpass.getpass("API key: ").strip()
         self.config.update({"api_base": base, "model": model})
         if key:
             self.config["api_key"] = key
         self.config["session_id"] = self.session_id
         self.config["data_dir"] = str(self.data_dir)
-        save_config(self.config)
+        save_config(self.config_file, self.config)
         self.client = ChatClient(self.config)
-        print(color(f"Saved config: {CONFIG_FILE}", C.green, not self.plain))
+        print(color(f"Saved config: {self.config_file}", C.green, not self.plain))
 
     def config_command(self, args: list[str]) -> None:
         if not args:
@@ -294,11 +354,12 @@ class CrushCLI:
         if len(args) < 2 or args[0] not in {"model", "base", "key", "session"}:
             raise ValueError("Usage: /config model|base|key|session <value>")
         field_map = {"model": "model", "base": "api_base", "key": "api_key", "session": "session_id"}
-        self.config[field_map[args[0]]] = args[1]
+        value = normalize_api_base(args[1]) if args[0] == "base" else args[1]
+        self.config[field_map[args[0]]] = value
         if args[0] == "session":
             self.session_id = args[1]
             self.ensure_session()
-        save_config(self.config)
+        save_config(self.config_file, self.config)
         self.client = ChatClient(self.config)
         print(color("Config saved.", C.green, not self.plain))
 
@@ -344,7 +405,7 @@ class CrushCLI:
             raise ValueError("Usage: /use <session_id>")
         self.session_id = args[0]
         self.config["session_id"] = self.session_id
-        save_config(self.config)
+        save_config(self.config_file, self.config)
         self.ensure_session()
         print(color(f"Switched to session: {self.session_id}", C.green, not self.plain))
 
@@ -361,7 +422,7 @@ class CrushCLI:
         print(result["markdown"])
 
     def where(self) -> None:
-        print(f"config: {CONFIG_FILE}")
+        print(f"config: {self.config_file}")
         print(f"data:   {self.data_dir}")
         print(f"skill:  {SKILL_DIR}")
 
@@ -374,7 +435,12 @@ class CrushCLI:
             print(wrap(turn["runtime_prompt"][:1200]))
             return
         with Spinner("Letting the persona answer...", enabled=not self.plain):
-            reply = self.client.reply(turn["runtime_prompt"], message)
+            try:
+                reply = self.client.reply(turn["runtime_prompt"], message)
+            except ModelError as exc:
+                print(color(str(exc), C.red, not self.plain))
+                print(color("这次用户消息已经写入本地记忆；修好配置后可以继续聊。", C.dim, not self.plain))
+                return
         self.runtime.run(
             "record_reply",
             self.session_id,

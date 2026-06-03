@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.3.0 — Relationship Persona Simulation Engine.
+Crush.skill v2.3.1 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -583,7 +583,7 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.3.0")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.3.1")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")

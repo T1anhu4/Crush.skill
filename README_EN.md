@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0"><img src="https://img.shields.io/badge/version-2.3.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.1"><img src="https://img.shields.io/badge/version-2.3.1-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.1">Download Release</a>
 </p>
 
 ---
@@ -201,6 +201,16 @@ export OPENAI_API_BASE="https://api.openai.com/v1"
 export CRUSH_CHAT_MODEL="gpt-4o-mini"
 crush
 ```
+
+DeepSeek example:
+
+```bash
+export OPENAI_API_BASE="https://api.deepseek.com"
+export CRUSH_CHAT_MODEL="deepseek-chat"
+crush
+```
+
+> DeepSeek's console domain `https://platform.deepseek.com` is not the Chat Completions API base. The CLI auto-corrects this common mistake, but `https://api.deepseek.com` is recommended.
 
 Common CLI commands:
 

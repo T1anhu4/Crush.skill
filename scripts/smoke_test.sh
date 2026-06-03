@@ -16,6 +16,37 @@ fi
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id import_demo --message '你猜我今天看到啥了，不是哥们真的抽象' >/tmp/crush_import_chat_turn.json
 "$PYTHON_BIN" "$SKILL" --action record_reply --session-id import_demo --message '你猜我今天看到啥了，不是哥们真的抽象' --npc-reply '又开始了是吧，怎么天天这么抽象哈哈' >/tmp/crush_record_reply.json
 CRUSH_HOME=/tmp/crush_cli_smoke "$PYTHON_BIN" -m crush_cli --plain --session cli_smoke --home /tmp/crush_cli_smoke --data-dir /tmp/crush_cli_smoke/data --message '今天有点想你' >/tmp/crush_cli_smoke.txt
+"$PYTHON_BIN" - <<'PY' >/tmp/crush_cli_429.txt
+import io
+from urllib.error import HTTPError
+
+import crush_cli.app as app
+
+
+def fake_urlopen(req, timeout=60):
+    raise HTTPError(
+        req.full_url,
+        429,
+        "Too Many Requests",
+        hdrs=None,
+        fp=io.BytesIO(b'{"error":{"message":"mock rate limit"}}'),
+    )
+
+
+app.urlopen = fake_urlopen
+client = app.ChatClient({
+    "api_key": "dummy",
+    "api_base": "https://platform.deepseek.com",
+    "model": "deepseek-v4-pro",
+})
+assert client.api_base == "https://api.deepseek.com", client.api_base
+try:
+    client.reply("runtime", "hello")
+except app.ModelError as exc:
+    print(str(exc))
+else:
+    raise AssertionError("ModelError was not raised")
+PY
 
 "$PYTHON_BIN" - <<'PY'
 import json
@@ -25,6 +56,7 @@ imported = json.loads(Path("/tmp/crush_chat_import.json").read_text())
 turn = json.loads(Path("/tmp/crush_import_chat_turn.json").read_text())
 recorded = json.loads(Path("/tmp/crush_record_reply.json").read_text())
 cli_output = Path("/tmp/crush_cli_smoke.txt").read_text()
+cli_429_output = Path("/tmp/crush_cli_429.txt").read_text()
 
 assert imported["success"], imported
 assert turn["success"], turn
@@ -35,6 +67,7 @@ assert turn["analysis"]["slang_hits"], turn["analysis"]
 assert turn["agent_contract"]["mode"] == "roleplay_only", turn["agent_contract"]
 assert turn["runtime_prompt"].find("本轮潜台词理解") >= 0, turn["runtime_prompt"]
 assert "Model not configured" in cli_output, cli_output
+assert "HTTP 429" in cli_429_output and "Traceback" not in cli_429_output, cli_429_output
 PY
 
 echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/cli passed"

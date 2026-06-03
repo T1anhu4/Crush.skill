@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0"><img src="https://img.shields.io/badge/version-2.3.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.1"><img src="https://img.shields.io/badge/version-2.3.1-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.0">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.3.1">下载 Release</a>
 </p>
 
 ---
@@ -212,6 +212,16 @@ export OPENAI_API_BASE="https://api.openai.com/v1"
 export CRUSH_CHAT_MODEL="gpt-4o-mini"
 crush
 ```
+
+DeepSeek 示例：
+
+```bash
+export OPENAI_API_BASE="https://api.deepseek.com"
+export CRUSH_CHAT_MODEL="deepseek-chat"
+crush
+```
+
+> DeepSeek 的网页控制台域名 `https://platform.deepseek.com` 不是 Chat Completions API base。CLI 会自动纠正这个常见误填，但推荐直接使用 `https://api.deepseek.com`。
 
 常用 CLI 命令：
 
