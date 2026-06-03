@@ -176,6 +176,29 @@ class StateEngine:
         tension_delta *= self._cross_dimension_modifier(state, "tension", tension_delta)
         exploration_delta *= self._cross_dimension_modifier(state, "exploration", exploration_delta)
 
+        pace_pressure = any(
+            tag in analysis.register_tags
+            for tag in ("nickname_boundary", "symbolic_naming", "assumed_intimacy", "pace")
+        )
+        if pace_pressure:
+            # Naming someone, asking for intimate nicknames, or assuming consent can
+            # still be touching, but it should not create instant attraction spikes.
+            favorability_delta = clamp(min(favorability_delta, 1.5), -7.0, 1.5)
+            exploration_delta = min(exploration_delta, 0.5)
+            propulsion_delta = min(propulsion_delta, 1.0)
+            defense_delta = max(defense_delta, 8.0 if analysis.pressure_score >= 0.55 else defense_delta)
+
+        # Human relationships wobble; they do not usually jump 20 points from one
+        # playful line. These caps keep the dashboard from feeling game-like.
+        favorability_delta = clamp(favorability_delta, -12.0, 10.0)
+        tension_delta = clamp(tension_delta, -10.0, 12.0)
+        exploration_delta = clamp(exploration_delta, -10.0, 10.0)
+        neediness_delta = clamp(neediness_delta, -8.0, 16.0)
+        frame_delta = clamp(frame_delta, -10.0, 10.0)
+        propulsion_delta = clamp(propulsion_delta, -10.0, 10.0)
+        attachment_delta = clamp(attachment_delta, -8.0, 14.0)
+        defense_delta = clamp(defense_delta, -6.0, 16.0)
+
         # ── Update state ──
         previous = state.to_dict()
         state.favorability = clamp(state.favorability + favorability_delta)
@@ -206,6 +229,9 @@ class StateEngine:
             triggered_tags.append("attraction_peak")
         if favorability_delta <= -10:
             triggered_tags.append("frame_collapse_risk")
+        for tag in analysis.register_tags:
+            if tag in {"nickname_boundary", "symbolic_naming", "assumed_intimacy", "pace", "neediness"} and tag not in triggered_tags:
+                triggered_tags.append(tag)
 
         delta = {
             "favorability": round(state.favorability - previous["favorability"], 2),

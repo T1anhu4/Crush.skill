@@ -9,6 +9,8 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   PYTHON_BIN="python3"
 fi
 
+export CRUSH_DATA_DIR="${CRUSH_DATA_DIR:-/tmp/crush_skill_smoke_data_$$}"
+
 "$PYTHON_BIN" "$SKILL" --action quick_start --session-id demo --config-json '{"archetype":"experience","gender":"female","relationship_stage":"暧昧期"}' >/tmp/crush_quick_start.json
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id demo --message '你最近忙什么，今天看起来心情还不错' >/tmp/crush_chat_turn.json
 "$PYTHON_BIN" "$SKILL" --action postmortem --session-id demo >/tmp/crush_postmortem.json
@@ -18,6 +20,10 @@ fi
 "$PYTHON_BIN" "$SKILL" --action quick_start --session-id nickname_demo --config-json '{"archetype":"experience","gender":"female","relationship_stage":"暧昧期"}' >/tmp/crush_nickname_start.json
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id nickname_demo --message '我可以叫你宝宝吗' >/tmp/crush_nickname_1.json
 "$PYTHON_BIN" "$SKILL" --action chat_turn --session-id nickname_demo --message '那我以后一直叫你宝宝好不好，可以吗' >/tmp/crush_nickname_2.json
+"$PYTHON_BIN" "$SKILL" --action quick_start --session-id symbolic_demo --config-json '{"archetype":"experience","gender":"female","relationship_stage":"暧昧期"}' >/tmp/crush_symbolic_start.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id symbolic_demo --message '那可不是哦 你的名字对于我来说可不能随便是个代号 我叫你camellia吧' >/tmp/crush_symbolic_1.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id symbolic_demo --message '因为camellia直译过来是山茶花，山茶花的花语是理想的爱' >/tmp/crush_symbolic_2.json
+"$PYTHON_BIN" "$SKILL" --action chat_turn --session-id symbolic_demo --message '你不拒绝 那我就叫你camellia啦' >/tmp/crush_symbolic_3.json
 CRUSH_HOME=/tmp/crush_cli_smoke "$PYTHON_BIN" -m crush_cli --plain --session cli_smoke --home /tmp/crush_cli_smoke --data-dir /tmp/crush_cli_smoke/data --message '今天有点想你' >/tmp/crush_cli_smoke.txt
 "$PYTHON_BIN" - <<'PY' >/tmp/crush_cli_429.txt
 import io
@@ -110,6 +116,7 @@ imported = json.loads(Path("/tmp/crush_chat_import.json").read_text())
 turn = json.loads(Path("/tmp/crush_import_chat_turn.json").read_text())
 recorded = json.loads(Path("/tmp/crush_record_reply.json").read_text())
 nickname = json.loads(Path("/tmp/crush_nickname_2.json").read_text())
+symbolic = json.loads(Path("/tmp/crush_symbolic_3.json").read_text())
 cli_output = Path("/tmp/crush_cli_smoke.txt").read_text()
 cli_429_output = Path("/tmp/crush_cli_429.txt").read_text()
 cli_proactive_output = Path("/tmp/crush_cli_proactive.txt").read_text()
@@ -125,9 +132,14 @@ assert turn["runtime_prompt"].find("本轮潜台词理解") >= 0, turn["runtime_
 assert nickname["analysis"]["neediness_score"] >= 0.65, nickname["analysis"]
 assert nickname["analysis"]["pressure_score"] >= 0.6, nickname["analysis"]
 assert "nickname_boundary" in nickname["analysis"]["register_tags"], nickname["analysis"]
+assert symbolic["analysis"]["neediness_score"] >= 0.75, symbolic["analysis"]
+assert symbolic["analysis"]["pressure_score"] >= 0.7, symbolic["analysis"]
+assert "symbolic_naming" in symbolic["analysis"]["register_tags"], symbolic["analysis"]
+assert "默认同意规则" in symbolic["runtime_prompt"], symbolic["runtime_prompt"]
+assert "最近逐字上下文" in symbolic["runtime_prompt"], symbolic["runtime_prompt"]
 assert "Model not configured" in cli_output, cli_output
 assert "HTTP 429" in cli_429_output and "Traceback" not in cli_429_output, cli_429_output
 assert "proactive ok" in cli_proactive_output, cli_proactive_output
 PY
 
-echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/nickname/timeline/cli passed"
+echo "[smoke-test] quick_start/chat_turn/postmortem/chat_import/pragmatics/nickname/symbolic/timeline/cli passed"

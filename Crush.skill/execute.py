@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.0 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.1 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -306,6 +306,11 @@ class CrushSkillRuntime:
                 {"delta": calculated["delta"], "analysis": calculated["analysis"]})
         self.memory.sqlite.update_summary(session_id)
         memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=message, limit=6)
+        recent_turns = list(reversed(self.memory.sqlite.get_recent_episodes(session_id, limit=8)))
+        memory_ctx["recent_turns"] = [
+            {"role": item.get("role", ""), "content": item.get("content", "")[:240]}
+            for item in recent_turns
+        ]
         memory_ctx["pragmatics"] = {
             "surface_intent": analysis.surface_intent,
             "subtext": analysis.subtext,
@@ -530,37 +535,63 @@ class CrushSkillRuntime:
             return self.persona.from_preset("experience")
 
     def _apply_contextual_adjustments(self, session_id: str, message: str, analysis: Any) -> None:
-        nickname_signal = self._nickname_boundary_signal(message)
-        if not nickname_signal:
+        boundary_kind = self._intimacy_boundary_kind(message)
+        if not boundary_kind:
             return
 
         recent = self.memory.sqlite.get_recent_episodes(session_id, limit=12)
         recent_user = [item["content"] for item in recent if item.get("role") == "user"]
-        repeat_count = sum(1 for content in recent_user if self._nickname_boundary_signal(content))
+        repeat_count = sum(1 for content in recent_user if self._intimacy_boundary_kind(content))
 
-        pressure = min(1.0, 0.42 + repeat_count * 0.18)
-        neediness = min(1.0, 0.48 + repeat_count * 0.2)
-        attachment = min(1.0, 0.35 + repeat_count * 0.18)
+        if boundary_kind == "symbolic_naming":
+            pressure = min(1.0, 0.55 + repeat_count * 0.16)
+            neediness = min(1.0, 0.60 + repeat_count * 0.18)
+            attachment = min(1.0, 0.48 + repeat_count * 0.16)
+            surface = "专属命名/浪漫投射确认"
+            deep_need = "想通过专属名字和象征意义快速锁定亲密感"
+            subtext = "表面是在起一个特别的名字，实际是在争取命名权和关系想象空间；如果继续用花语、我俩、不拒绝就默认同意，会让对方产生被推进的防备。"
+            strategy = "对方可以接住一点点心意，但要轻轻降温、把命名权收回来，避免默认接受过高亲密设定。"
+            boundary = "专属命名和花语绑定推进过快，需要先确认对方是否舒服"
+            tags = ["symbolic_naming", "nickname_boundary", "neediness", "pace", "assumed_intimacy"]
+        else:
+            pressure = min(1.0, 0.42 + repeat_count * 0.18)
+            neediness = min(1.0, 0.48 + repeat_count * 0.2)
+            attachment = min(1.0, 0.35 + repeat_count * 0.18)
+            surface = "昵称边界确认"
+            deep_need = "想快速获得亲密许可和关系确认"
+            subtext = "表面是在问能不能这么叫，实际是在索取亲密身份许可；反复问会让对方感觉被推进或被拿捏。"
+            strategy = "对方应轻轻设边界或降温，不要立刻给很高亲密授权。"
+            boundary = "亲昵称呼推进过快，需要降速"
+            tags = ["nickname_boundary", "neediness", "pace"]
 
         analysis.neediness_score = max(analysis.neediness_score, neediness)
         analysis.pressure_score = max(analysis.pressure_score, pressure)
         analysis.attachment_trigger_score = max(analysis.attachment_trigger_score, attachment)
+        analysis.authenticity_score = min(max(analysis.authenticity_score, 0.28), 0.55)
         analysis.playfulness_score = min(analysis.playfulness_score, 0.35)
-        analysis.surface_intent = "昵称边界确认"
-        analysis.deep_need = "想快速获得亲密许可和关系确认"
+        analysis.valence = min(analysis.valence, 0.12)
+        analysis.surface_intent = surface
+        analysis.deep_need = deep_need
         analysis.emotional_state = "anxious"
         analysis.test_flag = True
         analysis.test_type = "pace_boundary_test"
-        analysis.subtext = "表面是在问能不能这么叫，实际是在索取亲密身份许可；反复问会让对方感觉被推进或被拿捏。"
-        analysis.reply_strategy = "对方应轻轻设边界或降温，不要立刻给很高亲密授权。"
-        analysis.implied_boundary = "亲昵称呼推进过快，需要降速"
-        for tag in ["nickname_boundary", "neediness", "pace"]:
+        analysis.subtext = subtext
+        analysis.reply_strategy = strategy
+        analysis.implied_boundary = boundary
+        for tag in tags:
             if tag not in analysis.register_tags:
                 analysis.register_tags.append(tag)
-        note = f"昵称/亲属称呼边界试探，近期重复 {repeat_count + 1} 次"
+        note = f"亲密称呼/专属命名边界试探，近期重复 {repeat_count + 1} 次"
         if note not in analysis.notes:
             analysis.notes.append(note)
         analysis.bounded()
+
+    def _intimacy_boundary_kind(self, text: str) -> str:
+        if self._symbolic_naming_signal(text):
+            return "symbolic_naming"
+        if self._nickname_boundary_signal(text):
+            return "nickname"
+        return ""
 
     def _nickname_boundary_signal(self, text: str) -> bool:
         normalized = re.sub(r"\s+", "", text)
@@ -573,6 +604,19 @@ class CrushSkillRuntime:
         contains_nickname = any(word in normalized for word in nickname_words)
         resistance_probe = re.search(r"(为什么不|真的不行|不喜欢我.*叫|不能这么叫|你不让|那我还能叫)", normalized)
         return bool((asks_permission and (call_intent or contains_nickname)) or (call_intent and contains_nickname) or resistance_probe)
+
+    def _symbolic_naming_signal(self, text: str) -> bool:
+        normalized = re.sub(r"\s+", "", text.lower())
+        call_intent = re.search(r"(叫你|喊你|称呼你|这么叫|这样叫|以后叫|我叫|给你起|给你取|叫.*可以|叫.*行)", normalized)
+        symbolic_terms = re.search(r"(花语|山茶花|camellia|专属|适合我俩|适合我们|理想的爱|喜欢你|亲密一点)", normalized)
+        assumed_consent = re.search(r"(不拒绝|没拒绝|默认|那我就|我就叫|以后就)", normalized)
+        permission = re.search(r"(可以吗|能不能|可不可以|行不行|好不好|介意|允许|同意)", normalized)
+        return bool(
+            (call_intent and symbolic_terms)
+            or (call_intent and assumed_consent)
+            or (permission and symbolic_terms)
+            or (assumed_consent and symbolic_terms)
+        )
 
     def _agent_contract(self) -> Dict[str, Any]:
         return {

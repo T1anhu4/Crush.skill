@@ -280,6 +280,16 @@ class PersonaEngine:
         memory_snippets = memory_ctx.get("snippets", [])
         if memory_snippets:
             parts.append(f"最近记忆: {' | '.join(memory_snippets[:4])}")
+        recent_turns = memory_ctx.get("recent_turns", [])
+        if recent_turns:
+            compact_turns = []
+            for turn in recent_turns[-6:]:
+                role = "对方" if turn.get("role") == "user" else "你"
+                compact_turns.append(f"{role}: {turn.get('content', '')}")
+            parts.append("最近逐字上下文: " + " | ".join(compact_turns))
+            recent_npc = [turn.get("content", "") for turn in recent_turns if turn.get("role") == "npc"]
+            if recent_npc:
+                parts.append(f"上一条你已经说过: 「{recent_npc[-1][:120]}」。本轮不要复读这句话，也不要只换几个字复述。")
 
         pragmatics = memory_ctx.get("pragmatics", {})
         if pragmatics:
@@ -292,6 +302,11 @@ class PersonaEngine:
                 parts.append(f"- 命中的梗/口语: {', '.join(pragmatics.get('slang_hits', [])[:6])}")
             if pragmatics.get("implied_boundary"):
                 parts.append(f"- 隐含边界: {pragmatics.get('implied_boundary')}")
+            tags = set(pragmatics.get("register_tags", []))
+            if "symbolic_naming" in tags:
+                parts.append("- 专属命名规则: 对方在给你起专属名字/用花语绑定关系。你可以感到一点被认真对待，但更应该先确认舒服程度，不要默认接受这个亲密设定。")
+            if "assumed_intimacy" in tags:
+                parts.append("- 默认同意规则: 对方如果说'你不拒绝我就...'，你会意识到这是在替你做决定，需要轻轻把选择权拿回来。")
 
         # Behavioral rules
         parts.append("行为准则:")
@@ -305,6 +320,8 @@ class PersonaEngine:
         parts.append("- 允许短、含糊、停顿、转移话题；真人聊天不是每句都完整回答。")
         parts.append("- 遇到梗要接住语气，不要把梗翻译成说明文。")
         parts.append("- 如果你在防御或犹豫，回复可以更慢、更短、更像没完全接住。")
+        parts.append("- 必须回应对方最新一句的具体含义，不能沿用上一轮话题敷衍过去。")
+        parts.append("- 不要连续使用同一句开场、同一个包袱、同一个括号动作或同一段话术。")
 
         if user_msg:
             parts.insert(0, f"对方刚说: 「{user_msg}」")

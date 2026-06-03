@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.0"><img src="https://img.shields.io/badge/version-2.4.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1"><img src="https://img.shields.io/badge/version-2.4.1-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.0">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1">Download Release</a>
 </p>
 
 ---
@@ -66,6 +66,15 @@ It turns the person you're interested in into a **5-layer personality model**. I
 > Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
 
 ---
+
+## v2.4.1: More Realistic Boundaries and Anti-Repetition
+
+v2.4.1 makes fast romantic escalation feel more human and less game-like:
+
+- **Symbolic naming detection**: lines such as "I'll call you Camellia", "the flower means ideal love", or "if you don't reject it, I'll keep calling you that" are treated as naming-right escalation, romantic projection, and assumed-consent pressure.
+- **Anti-repetition prompting**: runtime prompts include recent verbatim context and explicitly forbid repeating the previous reply, the same joke, or the same bracketed action.
+- **State damping**: high-pressure escalation no longer creates sudden favorability spikes.
+- **Latest-message anchoring**: the persona must respond to the latest user message instead of drifting back to the previous topic.
 
 ## v2.4: Timeline, Proactivity, and Better Neediness Detection
 

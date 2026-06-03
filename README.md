@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.0"><img src="https://img.shields.io/badge/version-2.4.0-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1"><img src="https://img.shields.io/badge/version-2.4.1-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.0">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1">下载 Release</a>
 </p>
 
 ---
@@ -66,6 +66,15 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
 
 ---
+
+## v2.4.1 新能力：更真实的边界感和防复读
+
+v2.4.1 继续强化真实聊天质感，尤其是“浪漫推进过快时对方会本能后退”的细节：
+
+- **专属命名/花语绑定识别**：例如“我叫你 camellia 吧”“山茶花花语是理想的爱”“你不拒绝我就这么叫”，会被识别为命名权推进、浪漫投射和默认同意风险。
+- **防复读约束**：runtime prompt 会带入最近逐字上下文，明确禁止重复上一条回复、同一个包袱或同一个括号动作。
+- **关系分数阻尼**：高压力推进不会再让好感度突然暴涨，状态变化更像真人的缓慢升温/降温。
+- **答题锚定**：角色必须回应用户最新一句的具体含义，降低答非所问和沿用上一轮话题的概率。
 
 ## v2.4 新能力：时间线、主动性和更敏感的需求感识别
 
