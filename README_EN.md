@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1"><img src="https://img.shields.io/badge/version-2.4.1-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.2"><img src="https://img.shields.io/badge/version-2.4.2-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.2">Download Release</a>
 </p>
 
 ---
@@ -66,6 +66,14 @@ It turns the person you're interested in into a **5-layer personality model**. I
 > Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
 
 ---
+
+## v2.4.2: Timeline Background Thread Stability
+
+v2.4.2 fixes a CLI timeline issue that could appear in macOS terminals when proactive messages ran in the background:
+
+- **Thread-safe timeline runtime**: the proactive-message thread now uses its own runtime and SQLite connection instead of reusing the main chat thread's database object.
+- **Regression coverage**: smoke tests now trigger proactive messaging from a real background thread to prevent `SQLite objects created in a thread...` regressions.
+- **2.4 maintenance branch**: 2.4.x patch releases are published from the `2.4` branch unless `main` is explicitly requested.
 
 ## v2.4.1: More Realistic Boundaries and Anti-Repetition
 

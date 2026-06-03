@@ -102,7 +102,21 @@ state = cli.timeline_state()
 state["paused"] = False
 state["next_proactive_at"] = 0
 cli.save_timeline_state(state)
-cli.maybe_proactive_message()
+errors = []
+
+
+def run_from_background_thread():
+    try:
+        cli.maybe_proactive_message()
+    except Exception as exc:
+        errors.append(str(exc))
+
+
+thread = app.threading.Thread(target=run_from_background_thread)
+thread.start()
+thread.join(timeout=5)
+assert not thread.is_alive(), "timeline thread did not finish"
+assert not errors, errors
 episodes = cli.runtime.memory.sqlite.get_recent_episodes("timeline_demo", limit=5)
 assert any(item["role"] == "npc" and "安静" in item["content"] for item in episodes), episodes
 print("proactive ok")

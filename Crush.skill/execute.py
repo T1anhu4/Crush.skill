@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.1 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.2 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality

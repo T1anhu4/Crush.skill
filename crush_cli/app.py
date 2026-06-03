@@ -541,13 +541,14 @@ class CrushCLI:
             return
 
         event = self.timeline_event(state)
-        prompt = self.runtime.run("proactive_prompt", self.session_id, {"event": event, **state})
+        timeline_runtime = import_runtime(self.data_dir)
+        prompt = timeline_runtime.run("proactive_prompt", self.session_id, {"event": event, **state})
         reply = self.client.reply(prompt["runtime_prompt"], event)
         if reply.strip() == "__NO_MESSAGE__":
             state["next_proactive_at"] = now + self.sample_proactive_delay()
             self.save_timeline_state(state)
             return
-        self.runtime.run(
+        timeline_runtime.run(
             "record_reply",
             self.session_id,
             {"message": event, "npc_reply": reply, "tags": ["timeline_proactive"]},
@@ -562,7 +563,7 @@ class CrushCLI:
             sys.stdout.flush()
 
     def sample_proactive_delay(self) -> float:
-        session = self.runtime.memory.sqlite.load_session(self.session_id) or {}
+        session = self._load_session_for_timeline()
         canonical = session.get("canonical_archetype", "experience")
         profile = session.get("profile", {})
         attachment = profile.get("attachment_style", "")
@@ -584,7 +585,7 @@ class CrushCLI:
         return max(15.0, random.uniform(low, high) * scale)
 
     def proactive_probability(self) -> float:
-        session = self.runtime.memory.sqlite.load_session(self.session_id) or {}
+        session = self._load_session_for_timeline()
         profile = session.get("profile", {})
         state = session.get("state", {})
         canonical = session.get("canonical_archetype", "experience")
@@ -604,6 +605,11 @@ class CrushCLI:
         base += max(0.0, float(state.get("exploration", 0)) - 35) / 220
         base -= max(0.0, float(state.get("defense_level", 0)) - 35) / 130
         return max(0.05, min(0.82, base))
+
+    def _load_session_for_timeline(self) -> Dict[str, Any]:
+        if threading.current_thread() is threading.main_thread():
+            return self.runtime.memory.sqlite.load_session(self.session_id) or {}
+        return import_runtime(self.data_dir).memory.sqlite.load_session(self.session_id) or {}
 
     def timeline_event(self, state: Dict[str, Any]) -> str:
         now = datetime.now()

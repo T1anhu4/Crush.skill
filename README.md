@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1"><img src="https://img.shields.io/badge/version-2.4.1-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.2"><img src="https://img.shields.io/badge/version-2.4.2-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.1">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.2">下载 Release</a>
 </p>
 
 ---
@@ -66,6 +66,14 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
 
 ---
+
+## v2.4.2 修复：时间线后台线程稳定性
+
+v2.4.2 修复 CLI 时间线主动消息在 macOS 终端里可能出现的 SQLite 跨线程错误：
+
+- **线程安全时间线**：后台主动消息线程使用独立 runtime/SQLite 连接，不再复用主聊天线程的数据库对象。
+- **真实后台回归测试**：smoke test 会从后台线程触发主动消息，防止 `SQLite objects created in a thread...` 这类错误复发。
+- **2.4 维护分支**：2.4.x 小版本从 `2.4` 分支发布，除非明确要求，不再直接更新 `main`。
 
 ## v2.4.1 新能力：更真实的边界感和防复读
 
