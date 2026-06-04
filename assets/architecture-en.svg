@@ -1,0 +1,37 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Crush.skill English architecture diagram">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#fff7ed"/></linearGradient>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="124%"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0f172a" flood-opacity="0.10"/></filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2 2 L10 6 L2 10 Z" fill="#64748b"/></marker>
+    <style>
+      .title{font:800 34px ui-sans-serif, system-ui, sans-serif; fill:#111827}.sub{font:600 17px ui-sans-serif, system-ui, sans-serif; fill:#64748b}.boxTitle{font:800 20px ui-sans-serif, system-ui, sans-serif; fill:#172033}.boxText{font:600 15px ui-sans-serif, system-ui, sans-serif; fill:#475569}.tiny{font:700 13px ui-sans-serif, system-ui, sans-serif; fill:#64748b}.line{stroke:#64748b;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" rx="32" fill="url(#bg)"/>
+  <text class="title" x="70" y="66">Crush.skill Architecture</text>
+  <text class="sub" x="70" y="96">Agent Skill and local CLI share one runtime, state engine, memory layer, and report engine.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="142" width="260" height="104" rx="22" fill="#ffffff" stroke="#bae6fd"/><text class="boxTitle" x="96" y="180">Entry Layer</text><text class="boxText" x="96" y="208">Claude Code / OpenClaw</text><text class="boxText" x="96" y="232">QwenPaw / Standalone CLI</text>
+    <rect x="450" y="142" width="260" height="104" rx="22" fill="#ffffff" stroke="#fecdd3"/><text class="boxTitle" x="476" y="180">Action Router</text><text class="boxText" x="476" y="208">execute.py / manifest</text><text class="boxText" x="476" y="232">slash commands / CLI commands</text>
+    <rect x="830" y="142" width="260" height="104" rx="22" fill="#ffffff" stroke="#fde68a"/><text class="boxTitle" x="856" y="180">Output Contract</text><text class="boxText" x="856" y="208">hidden runtime_prompt</text><text class="boxText" x="856" y="232">natural reply only</text>
+  </g>
+  <path class="line" d="M330 194 H440"/><path class="line" d="M710 194 H820"/>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="330" width="210" height="116" rx="22" fill="#fff1f2" stroke="#fb7185"/><text class="boxTitle" x="94" y="368">Chat Import</text><text class="boxText" x="94" y="396">WeChat / WhatsApp / QQ</text><text class="boxText" x="94" y="420">CSV / pasted transcript</text>
+    <rect x="318" y="330" width="210" height="116" rx="22" fill="#ecfeff" stroke="#22d3ee"/><text class="boxTitle" x="342" y="368">Persona Engine</text><text class="boxText" x="342" y="396">5-layer persona model</text><text class="boxText" x="342" y="420">expression DNA / boundaries</text>
+    <rect x="566" y="330" width="210" height="116" rx="22" fill="#fffbeb" stroke="#f59e0b"/><text class="boxTitle" x="590" y="368">Pragmatics</text><text class="boxText" x="590" y="396">slang / subtext / soft no</text><text class="boxText" x="590" y="420">neediness / pressure reads</text>
+    <rect x="814" y="330" width="210" height="116" rx="22" fill="#f0fdf4" stroke="#22c55e"/><text class="boxTitle" x="838" y="368">State Engine</text><text class="boxText" x="838" y="396">favorability / tension</text><text class="boxText" x="838" y="420">defense / initiative / timeline</text>
+  </g>
+  <path class="line" d="M580 246 V306"/><path class="line" d="M580 306 H175 V326"/><path class="line" d="M580 306 H423 V326"/><path class="line" d="M580 306 H671 V326"/><path class="line" d="M580 306 H919 V326"/>
+
+  <g filter="url(#shadow)">
+    <rect x="156" y="548" width="250" height="116" rx="22" fill="#ffffff" stroke="#cbd5e1"/><text class="boxTitle" x="182" y="586">Memory System</text><text class="boxText" x="182" y="614">SQLite source-of-truth</text><text class="boxText" x="182" y="638">local retrieval / summary / mem0</text>
+    <rect x="475" y="548" width="250" height="116" rx="22" fill="#ffffff" stroke="#cbd5e1"/><text class="boxTitle" x="501" y="586">Distillation Report</text><text class="boxText" x="501" y="614">evidence map / radar</text><text class="boxText" x="501" y="638">playbook / validation limits</text>
+    <rect x="794" y="548" width="250" height="116" rx="22" fill="#ffffff" stroke="#cbd5e1"/><text class="boxTitle" x="820" y="586">Persona Reply</text><text class="boxText" x="820" y="614">host model or CLI model</text><text class="boxText" x="820" y="638">record_reply writes memory back</text>
+  </g>
+  <path class="line" d="M423 446 V538"/><path class="line" d="M671 446 V538"/><path class="line" d="M919 446 V538"/>
+  <path class="line" d="M406 606 H464"/><path class="line" d="M725 606 H783"/>
+  <text class="tiny" x="70" y="718">Principle: rules compute state and evidence; LLMs produce natural expression; SQLite remains the local memory source.</text>
+</svg>

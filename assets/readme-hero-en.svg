@@ -1,4 +1,4 @@
-<svg width="1200" height="560" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Crush.skill 中文首页动画">
+<svg width="1200" height="560" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Crush.skill English hero animation">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fff7ed"/>
@@ -18,10 +18,10 @@
     </filter>
     <style>
       .title{font:800 62px Georgia, 'Times New Roman', serif; fill:#111827; letter-spacing:-1px}
-      .subtitle{font:600 24px ui-sans-serif, system-ui, sans-serif; fill:#334155}
+      .subtitle{font:600 23px ui-sans-serif, system-ui, sans-serif; fill:#334155}
       .body{font:600 19px ui-sans-serif, system-ui, sans-serif; fill:#475569}
       .small{font:600 16px ui-sans-serif, system-ui, sans-serif; fill:#64748b}
-      .pill{font:800 15px ui-sans-serif, system-ui, sans-serif; fill:#881337}
+      .pill{font:800 14px ui-sans-serif, system-ui, sans-serif; fill:#881337}
       .cmd{font:700 18px ui-monospace, SFMono-Regular, Menlo, monospace; fill:#fff7ed}
       .chat{font:700 18px ui-sans-serif, system-ui, sans-serif; fill:#172033}
       .readout{font:800 16px ui-sans-serif, system-ui, sans-serif; fill:#92400e}
@@ -42,19 +42,19 @@
 
   <g transform="translate(74 78)">
     <text class="title" x="0" y="0">Crush.skill</text>
-    <text class="subtitle" x="4" y="46">关系飞行模拟器，不是普通 AI 陪聊。</text>
-    <text class="body" x="4" y="92">导入真实聊天记录，模拟关系张力，训练你读懂边界、</text>
-    <text class="body" x="4" y="120">好感、需求感、主动性和下一步推进时机。</text>
+    <text class="subtitle" x="4" y="46">A relationship flight simulator, not another chatbot.</text>
+    <text class="body" x="4" y="92">Import real chats, simulate tension, and learn when to</text>
+    <text class="body" x="4" y="120">push, slow down, wait, or stop.</text>
 
     <g transform="translate(0 160)">
-      <rect x="0" y="0" width="124" height="38" rx="19" fill="#fff1f2" stroke="#fb7185"/>
-      <text class="pill" x="22" y="25">人格记忆</text>
-      <rect x="138" y="0" width="124" height="38" rx="19" fill="#ecfeff" stroke="#22d3ee"/>
-      <text class="pill" x="160" y="25" fill="#155e75">聊天导入</text>
-      <rect x="276" y="0" width="124" height="38" rx="19" fill="#fffbeb" stroke="#f59e0b"/>
-      <text class="pill" x="298" y="25" fill="#92400e">时间线</text>
-      <rect x="414" y="0" width="124" height="38" rx="19" fill="#f0fdf4" stroke="#22c55e"/>
-      <text class="pill" x="436" y="25" fill="#166534">关系读秒</text>
+      <rect x="0" y="0" width="132" height="38" rx="19" fill="#fff1f2" stroke="#fb7185"/>
+      <text class="pill" x="22" y="25">persona</text>
+      <rect x="146" y="0" width="132" height="38" rx="19" fill="#ecfeff" stroke="#22d3ee"/>
+      <text class="pill" x="168" y="25" fill="#155e75">chat import</text>
+      <rect x="292" y="0" width="132" height="38" rx="19" fill="#fffbeb" stroke="#f59e0b"/>
+      <text class="pill" x="318" y="25" fill="#92400e">timeline</text>
+      <rect x="438" y="0" width="132" height="38" rx="19" fill="#f0fdf4" stroke="#22c55e"/>
+      <text class="pill" x="458" y="25" fill="#166534">coach HUD</text>
     </g>
 
     <g class="glow" transform="translate(4 242)">
@@ -68,27 +68,27 @@
   <g filter="url(#shadow)" transform="translate(650 64)">
     <rect width="446" height="418" rx="28" fill="url(#panel)"/>
     <rect x="24" y="24" width="398" height="48" rx="24" fill="#172033"/>
-    <text class="cmd" x="46" y="55" fill="#f8fafc">default › 下班了下班了</text>
+    <text class="cmd" x="46" y="55" fill="#f8fafc">default › off work now</text>
 
     <g class="bubble" transform="translate(34 104)">
       <rect x="0" y="0" width="368" height="92" rx="24" fill="#ffffff" stroke="#fecdd3"/>
       <text class="small" x="306" y="27">18:42</text>
-      <text class="chat" x="24" y="42">终于。你到哪了？</text>
-      <text class="chat" x="24" y="68">我刚好也准备走。</text>
+      <text class="chat" x="24" y="42">Finally. Where are you?</text>
+      <text class="chat" x="24" y="68">I am about to leave too.</text>
     </g>
 
     <g transform="translate(34 224)">
       <rect x="0" y="0" width="368" height="104" rx="22" fill="#fffbeb" stroke="#facc15"/>
-      <text class="readout" x="22" y="30">读秒：普通推进 · 风险中</text>
-      <text class="small" x="22" y="58">下一句：回应具体位置，轻轻邀约；</text>
-      <text class="small" x="22" y="82">不要立刻追问“你喜不喜欢我”。</text>
+      <text class="readout" x="22" y="30">Readout: normal push · medium risk</text>
+      <text class="small" x="22" y="58">Next: answer with care and context;</text>
+      <text class="small" x="22" y="82">do not ask for validation yet.</text>
     </g>
 
     <g transform="translate(34 356)">
       <rect x="0" y="0" width="176" height="34" rx="17" fill="#ecfeff" stroke="#67e8f9"/>
-      <text class="small" x="22" y="23">等待你回复</text>
+      <text class="small" x="22" y="23">waiting state</text>
       <rect x="192" y="0" width="176" height="34" rx="17" fill="#fff1f2" stroke="#fda4af"/>
-      <text class="small" x="214" y="23">热情会变化</text>
+      <text class="small" x="214" y="23">warmth shifts</text>
     </g>
   </g>
 </svg>
