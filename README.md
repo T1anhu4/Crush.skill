@@ -45,12 +45,11 @@ Crush.skill 把你喜欢的对象变成一个 5 层人格模型。你可以在�
 
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于浪漫关系动力学，这是人类最复杂、也最缺乏教育的领域之一。
 
-<br/>
+..
 
 ---  
 
-<br/>
-
+..
 
 ## 项目定位
 
