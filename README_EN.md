@@ -7,10 +7,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7"><img src="https://img.shields.io/badge/version-2.4.7-ff6b8a?style=for-the-badge" alt="version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
-  <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
-  <img src="https://img.shields.io/badge/branch-2.4-60a5fa?style=for-the-badge" alt="branch">
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7"><img src="https://img.shields.io/badge/Version-2.4.7-ff6b8a" alt="version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2dd4bf" alt="license"></a>
+  <img src="https://img.shields.io/badge/Python-3.10+-fbbf24" alt="python">
+  <img src="https://img.shields.io/badge/Agent-OpenClaw-blue" alt="OpenClaw">
+  <img src="https://img.shields.io/badge/Agent-Claude%20Code-violet" alt="Claude Code">
+  <img src="https://img.shields.io/badge/Agent-QwenPaw-orange" alt="QwenPaw">
 </p>
 
 <p align="center">
