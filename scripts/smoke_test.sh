@@ -209,6 +209,17 @@ assert not thread.is_alive(), "timeline thread did not finish"
 assert not errors, errors
 episodes = cli.runtime.memory.sqlite.get_recent_episodes("timeline_demo", limit=5)
 assert any(item["role"] == "npc" and "安静" in item["content"] for item in episodes), episodes
+state = cli.timeline_state()
+assert state.get("pending"), state
+before = float(state["initiative"])
+low = cli.resolve_pending_proactive(state, "没有啊，我刚刚在打游戏现在才打完")
+assert low["quality"] == "low_priority", low
+assert float(state["initiative"]) < before, state
+state["pending"] = cli.build_pending("你还没到家吗", "late-night check", "followup")
+before_warmth = float(state["warmth"])
+high = cli.resolve_pending_proactive(state, "不好意思，今晚加班得好晚啊，刚刚才下班，没不理你")
+assert high["quality"] in {"high_care", "valid_busy"}, high
+assert float(state["warmth"]) >= before_warmth, state
 print("proactive ok")
 PY
 

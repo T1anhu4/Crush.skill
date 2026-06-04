@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4"><img src="https://img.shields.io/badge/version-2.4.4-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5"><img src="https://img.shields.io/badge/version-2.4.5-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5">下载 Release</a>
 </p>
 
 ---
@@ -66,6 +66,18 @@ Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以�
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
 
 ---
+
+## v2.4.5 新能力：真人时间线状态机
+
+v2.4.5 把 CLI 主动消息从“定时任务”升级成更像真人的等待与退缩机制：
+
+- **Pending 等待状态**：她主动发完一条消息后，会先等你的回复，不会不断换新话题刷屏。
+- **耐心窗口和追问**：超过自然等待时间后，才会根据时间段、人格和关系热度追问一次，比如深夜关心是否到家、早上委婉问到公司没。
+- **热情/主动性计算**：长期不回、低优先级回复会降低她的主动性和热情，下一次主动间隔会变长。
+- **回复质量分析**：`今晚加班得好晚，刚下班` 和 `刚刚在打游戏现在才打完` 会被判定为不同的重视程度。
+- **个人情绪退缩**：连续未回复后，她会更克制、有情绪、减少主动，而不是继续满格热情。
+- **消息时间显示**：Ta 的聊天气泡右上角会显示发送时间，让对话更像真实聊天窗口。
+- **空回复保护**：模型偶发返回空内容时不再报 `record_reply requires payload.npc_reply`。
 
 ## v2.4.4 新能力：多语言和模型配置向导
 

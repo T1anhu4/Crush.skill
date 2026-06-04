@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4"><img src="https://img.shields.io/badge/version-2.4.4-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5"><img src="https://img.shields.io/badge/version-2.4.5-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
@@ -24,7 +24,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.4">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5">Download Release</a>
 </p>
 
 ---
@@ -66,6 +66,18 @@ It turns the person you're interested in into a **5-layer personality model**. I
 > Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
 
 ---
+
+## v2.4.5: Human-Like Timeline State Machine
+
+v2.4.5 upgrades CLI proactive messages from timer-based prompts into a more human waiting-and-withdrawing model:
+
+- **Pending wait state**: after she sends a proactive message, she waits for your reply instead of constantly opening new topics.
+- **Patience window and follow-ups**: only after a natural waiting window will she follow up based on time of day, persona, and relationship heat.
+- **Warmth/initiative calculation**: long non-replies and low-priority replies reduce her warmth and initiative, making future proactive messages less frequent.
+- **Reply-quality analysis**: "I worked overtime and just got off" and "I was gaming and just finished" now affect her differently.
+- **Personal emotional withdrawal**: repeated ignored messages make her more restrained, a bit upset, and less proactive.
+- **Message timestamps**: Ta's chat bubbles show a right-aligned send time.
+- **Empty-reply protection**: timeline messages no longer surface `record_reply requires payload.npc_reply` when a model returns empty content.
 
 ## v2.4.4: Multilingual UI and Model Setup Wizard
 

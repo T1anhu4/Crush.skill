@@ -4,7 +4,7 @@ description: Relationship Persona Simulation Engine. Build a digital twin from c
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.4.4"
+  version: "2.4.5"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]

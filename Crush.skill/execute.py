@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.4 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.5 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -393,6 +393,8 @@ class CrushSkillRuntime:
             "- 你现在不是在回复对方刚发来的消息，而是在真实聊天时间线里主动发一条微信式消息。\n"
             "- 只能输出一条自然消息，可以短、可以试探、可以只是轻轻开启话题。\n"
             "- 不要像客服或日程提醒，不要固定模板，不要每次都问吃什么。\n"
+            "- 如果你上一条主动消息还没等到回复，不要不断换新话题刷屏；要么等，要么在合适时间轻轻追问一次。\n"
+            "- 如果对方长期不回、总是把你排在游戏/娱乐后面，你会降温、少主动、有一点情绪，而不是继续满格热情。\n"
             "- 如果当前防御高或你本来不主动，消息要更克制，甚至像随手一问。\n"
             "- 贴合当前时间段、你们的关系阶段、你的性格、最近记忆和你对对方的感觉。"
         )

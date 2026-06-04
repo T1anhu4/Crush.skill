@@ -89,6 +89,7 @@ LANG: dict[str, dict[str, str]] = {
         "judgment": "Signal",
         "next_line": "Next move",
         "time_passes": "time passes",
+        "timeline_waiting": "Waiting for your reply",
     },
     "zh-Hans": {
         "tagline": "关系人格模拟与聊天训练引擎",
@@ -140,6 +141,7 @@ LANG: dict[str, dict[str, str]] = {
         "judgment": "判断",
         "next_line": "下一句",
         "time_passes": "时间流逝",
+        "timeline_waiting": "正在等你回复",
     },
     "zh-Hant": {
         "tagline": "關係人格模擬與聊天訓練引擎",
@@ -191,6 +193,7 @@ LANG: dict[str, dict[str, str]] = {
         "judgment": "判斷",
         "next_line": "下一句",
         "time_passes": "時間流逝",
+        "timeline_waiting": "正在等你回覆",
     },
     "ru": {
         "tagline": "Engine for Relationship Persona Simulation",
@@ -242,6 +245,7 @@ LANG: dict[str, dict[str, str]] = {
         "judgment": "Signal",
         "next_line": "Next move",
         "time_passes": "time passes",
+        "timeline_waiting": "Waiting for your reply",
     },
     "ja": {
         "tagline": "Relationship Persona Simulation Engine",
@@ -293,6 +297,7 @@ LANG: dict[str, dict[str, str]] = {
         "judgment": "Signal",
         "next_line": "Next move",
         "time_passes": "time passes",
+        "timeline_waiting": "Waiting for your reply",
     },
 }
 
@@ -930,6 +935,7 @@ class CrushCLI:
 
     def chat(self, message: str) -> None:
         timeline = self.timeline_state()
+        response_read = self.resolve_pending_proactive(timeline, message)
         timeline["last_user_at"] = time.time()
         self.save_timeline_state(timeline)
         with Spinner(self.t("spinner_state"), enabled=not self.plain):
@@ -946,6 +952,10 @@ class CrushCLI:
                 print(color(str(exc), C.red, not self.plain))
                 print(color(self.t("turn_saved_after_error"), C.dim, not self.plain))
                 return
+        reply = reply.strip()
+        if not reply:
+            print(color("Model returned an empty reply. The user message was saved; try again or switch models.", C.gold, not self.plain))
+            return
         self.runtime.run(
             "record_reply",
             self.session_id,
@@ -953,8 +963,14 @@ class CrushCLI:
         )
         timeline = self.timeline_state()
         timeline["last_npc_at"] = time.time()
+        timeline["pending"] = {}
         timeline["next_proactive_at"] = time.time() + self.sample_proactive_delay()
         self.save_timeline_state(timeline)
+        if response_read:
+            turn.setdefault("coach", {})
+            note = response_read.get("note", "")
+            if note:
+                turn["coach"]["interest_read"] = f"{turn['coach'].get('interest_read', '')}；时间线判断: {note}".strip("；")
         self.print_reply(reply, turn)
 
     def start_timeline(self) -> None:
@@ -979,7 +995,7 @@ class CrushCLI:
     def continue_timeline(self) -> None:
         state = self.timeline_state()
         state["paused"] = False
-        state["next_proactive_at"] = time.time() + min(90.0, self.sample_proactive_delay())
+        state["next_proactive_at"] = time.time() + min(900.0, self.sample_proactive_delay())
         self.save_timeline_state(state)
         print(color(self.t("timeline_resumed"), C.green, not self.plain))
 
@@ -991,6 +1007,11 @@ class CrushCLI:
         state.setdefault("last_user_at", now)
         state.setdefault("last_npc_at", 0.0)
         state.setdefault("next_proactive_at", 0.0)
+        state.setdefault("initiative", 0.55)
+        state.setdefault("warmth", 0.55)
+        state.setdefault("ignored_streak", 0)
+        state.setdefault("low_priority_replies", 0)
+        state.setdefault("pending", {})
         return state
 
     def save_timeline_state(self, state: Dict[str, Any]) -> None:
@@ -1015,6 +1036,10 @@ class CrushCLI:
         now = time.time()
         if state.get("paused") or now < float(state.get("next_proactive_at", 0)):
             return
+        pending = state.get("pending") or {}
+        if pending:
+            self.maybe_follow_up_pending(state, pending, now)
+            return
         probability = self.proactive_probability()
         if random.random() > probability:
             state["next_proactive_at"] = now + self.sample_proactive_delay()
@@ -1024,8 +1049,8 @@ class CrushCLI:
         event = self.timeline_event(state)
         timeline_runtime = import_runtime(self.data_dir)
         prompt = timeline_runtime.run("proactive_prompt", self.session_id, {"event": event, **state})
-        reply = self.client.reply(prompt["runtime_prompt"], event)
-        if reply.strip() == "__NO_MESSAGE__":
+        reply = self.client.reply(prompt["runtime_prompt"], event).strip()
+        if not reply or reply == "__NO_MESSAGE__":
             state["next_proactive_at"] = now + self.sample_proactive_delay()
             self.save_timeline_state(state)
             return
@@ -1035,11 +1060,12 @@ class CrushCLI:
             {"message": event, "npc_reply": reply, "tags": ["timeline_proactive"]},
         )
         state["last_npc_at"] = time.time()
-        state["next_proactive_at"] = time.time() + self.sample_proactive_delay()
+        state["pending"] = self.build_pending(reply, event, "initial")
+        state["next_proactive_at"] = state["pending"]["followup_due_at"]
         self.save_timeline_state(state)
         with self.print_lock:
             print(color(f"\n[{self.t('time_passes')}]", C.dim, not self.plain))
-            self.print_reply(reply, {"relationship_vector": "时间线主动消息", "delta": {}})
+            self.print_reply(reply, {"relationship_vector": self.t("timeline_waiting"), "delta": {}, "sent_at": state["last_npc_at"]})
             sys.stdout.write(color(f"\n{self.session_id} › ", C.rose, not self.plain))
             sys.stdout.flush()
 
@@ -1049,11 +1075,11 @@ class CrushCLI:
         profile = session.get("profile", {})
         attachment = profile.get("attachment_style", "")
         ranges = {
-            "emotional": (65, 240),
-            "experience": (90, 360),
-            "security": (420, 1500),
-            "value": (600, 2100),
-            "passive": (1200, 3600),
+            "emotional": (1800, 7200),
+            "experience": (2700, 10800),
+            "security": (7200, 21600),
+            "value": (10800, 28800),
+            "passive": (21600, 64800),
         }
         low, high = ranges.get(canonical, ranges["experience"])
         if "Anxious" in attachment:
@@ -1082,10 +1108,145 @@ class CrushCLI:
             base += 0.18
         if "Avoidant" in attachment:
             base -= 0.12
+        base *= max(0.15, min(1.15, float(state.get("initiative", 0.55)) + 0.45))
+        base *= max(0.25, min(1.2, float(state.get("warmth", 0.55)) + 0.45))
+        base -= min(0.35, int(state.get("ignored_streak", 0)) * 0.12)
+        base -= min(0.25, int(state.get("low_priority_replies", 0)) * 0.08)
         base += max(0.0, float(state.get("favorability", 0)) - 45) / 180
         base += max(0.0, float(state.get("exploration", 0)) - 35) / 220
         base -= max(0.0, float(state.get("defense_level", 0)) - 35) / 130
         return max(0.05, min(0.82, base))
+
+    def build_pending(self, reply: str, event: str, kind: str) -> Dict[str, Any]:
+        now = time.time()
+        patience = self.sample_patience_window()
+        return {
+            "message": reply,
+            "event": event,
+            "kind": kind,
+            "sent_at": now,
+            "followup_due_at": now + patience,
+            "followup_count": 0,
+            "expires_at": now + patience * 3.5,
+        }
+
+    def sample_patience_window(self) -> float:
+        session = self._load_session_for_timeline()
+        canonical = session.get("canonical_archetype", "experience")
+        base = {
+            "emotional": (2400, 9000),
+            "experience": (3600, 12600),
+            "security": (7200, 21600),
+            "value": (10800, 28800),
+            "passive": (21600, 43200),
+        }.get(canonical, (5400, 18000))
+        scale = float(os.environ.get("CRUSH_TIMELINE_SPEED", "1") or "1")
+        return max(20.0, random.uniform(*base) * scale)
+
+    def maybe_follow_up_pending(self, state: Dict[str, Any], pending: Dict[str, Any], now: float) -> None:
+        followups = int(pending.get("followup_count", 0))
+        if followups >= 2 or now >= float(pending.get("expires_at", 0)):
+            self.cool_down_after_ignored(state)
+            state["pending"] = {}
+            state["next_proactive_at"] = now + self.sample_proactive_delay() * (1.6 + min(2, int(state.get("ignored_streak", 0))) * 0.7)
+            self.save_timeline_state(state)
+            return
+
+        event = self.followup_event(state, pending, followups)
+        timeline_runtime = import_runtime(self.data_dir)
+        prompt = timeline_runtime.run("proactive_prompt", self.session_id, {"event": event, **state, "pending": pending})
+        reply = self.client.reply(prompt["runtime_prompt"], event).strip()
+        if not reply or reply == "__NO_MESSAGE__":
+            pending["followup_due_at"] = now + self.sample_patience_window()
+            state["next_proactive_at"] = pending["followup_due_at"]
+            self.save_timeline_state(state)
+            return
+        timeline_runtime.run(
+            "record_reply",
+            self.session_id,
+            {"message": event, "npc_reply": reply, "tags": ["timeline_followup"]},
+        )
+        pending["message"] = reply
+        pending["event"] = event
+        pending["kind"] = "followup"
+        pending["sent_at"] = now
+        pending["followup_count"] = followups + 1
+        pending["followup_due_at"] = now + self.sample_patience_window() * (1.8 + followups)
+        pending["expires_at"] = now + self.sample_patience_window() * (3.0 + followups)
+        state["pending"] = pending
+        state["last_npc_at"] = now
+        state["next_proactive_at"] = pending["followup_due_at"]
+        self.save_timeline_state(state)
+        with self.print_lock:
+            print(color(f"\n[{self.t('time_passes')}]", C.dim, not self.plain))
+            self.print_reply(reply, {"relationship_vector": self.t("timeline_waiting"), "delta": {}, "sent_at": now})
+            sys.stdout.write(color(f"\n{self.session_id} › ", C.rose, not self.plain))
+            sys.stdout.flush()
+
+    def followup_event(self, state: Dict[str, Any], pending: Dict[str, Any], followups: int) -> str:
+        now = datetime.now()
+        hour = now.hour
+        waited_minutes = max(1, int((time.time() - float(pending.get("sent_at", time.time()))) / 60))
+        if 22 <= hour or hour < 2:
+            natural = "已经很晚了，她会想到你是不是还没到家、是不是还在忙、为什么还没回。"
+        elif 7 <= hour < 10:
+            natural = "早上了，她不会直接逼问昨晚为什么不回，而是用到公司/早餐/今天安排委婉试探。"
+        elif 11 <= hour < 14:
+            natural = "中午了，她可能借午饭或午休自然续一下，同时观察你是否还愿意接。"
+        elif 17 <= hour < 20:
+            natural = "下班/晚饭时间，她可能问你到哪了、吃没吃，带一点关心也带一点试探。"
+        else:
+            natural = "过了一段时间，她会根据性格轻轻追问，但不会像机器人重复催。"
+        mood = "第一次追问，语气可以轻一点。" if followups == 0 else "已经不是第一次未回复了，热情下降，语气更克制或有点不爽。"
+        return (
+            f"她上一条主动消息发出后，已经等了约 {waited_minutes} 分钟没有得到回复。{natural}{mood}"
+            "请只发一条真人会发的追问/试探消息；不要换新话题刷屏，不要显得像定时任务。"
+        )
+
+    def cool_down_after_ignored(self, state: Dict[str, Any]) -> None:
+        state["ignored_streak"] = int(state.get("ignored_streak", 0)) + 1
+        state["initiative"] = max(0.08, float(state.get("initiative", 0.55)) - 0.16)
+        state["warmth"] = max(0.12, float(state.get("warmth", 0.55)) - 0.10)
+
+    def resolve_pending_proactive(self, state: Dict[str, Any], message: str) -> Dict[str, Any]:
+        pending = state.get("pending") or {}
+        if not pending:
+            return {}
+        quality = self.assess_reply_to_pending(message, pending)
+        state["pending"] = {}
+        state["last_response_quality"] = quality["quality"]
+        state["last_response_note"] = quality["note"]
+        if quality["quality"] == "high_care":
+            state["ignored_streak"] = 0
+            state["initiative"] = min(1.0, float(state.get("initiative", 0.55)) + 0.06)
+            state["warmth"] = min(1.0, float(state.get("warmth", 0.55)) + 0.08)
+        elif quality["quality"] == "valid_busy":
+            state["ignored_streak"] = max(0, int(state.get("ignored_streak", 0)) - 1)
+            state["initiative"] = min(1.0, float(state.get("initiative", 0.55)) + 0.02)
+            state["warmth"] = min(1.0, float(state.get("warmth", 0.55)) + 0.03)
+        elif quality["quality"] == "low_priority":
+            state["low_priority_replies"] = int(state.get("low_priority_replies", 0)) + 1
+            state["initiative"] = max(0.08, float(state.get("initiative", 0.55)) - 0.10)
+            state["warmth"] = max(0.12, float(state.get("warmth", 0.55)) - 0.08)
+        else:
+            state["initiative"] = max(0.08, float(state.get("initiative", 0.55)) - 0.05)
+            state["warmth"] = max(0.12, float(state.get("warmth", 0.55)) - 0.04)
+        return quality
+
+    def assess_reply_to_pending(self, message: str, pending: Dict[str, Any]) -> Dict[str, Any]:
+        text = message.strip().lower()
+        waited = max(0, int((time.time() - float(pending.get("sent_at", time.time()))) / 60))
+        apology = any(word in text for word in ["抱歉", "不好意思", "刚看到", "才看到", "sorry", "sry", "ごめん"])
+        valid_busy = any(word in text for word in ["加班", "刚下班", "开会", "路上", "到家", "赶 ddl", "赶ddl", "忙完", "手机没电", "信号不好"])
+        low_priority = any(word in text for word in ["打游戏", "游戏", "刷视频", "睡着", "忘了", "懒得", "没看", "在玩", "开黑"])
+        care = any(word in text for word in ["想你", "怕你担心", "马上回", "刚忙完就回", "一忙完就回", "没不理你"])
+        if care or (apology and valid_busy):
+            return {"quality": "high_care", "waited_minutes": waited, "note": "你解释了原因并照顾到她的感受，她会觉得被重视。"}
+        if valid_busy or apology:
+            return {"quality": "valid_busy", "waited_minutes": waited, "note": "你有合理原因，她会理解，但会观察这种情况是否长期发生。"}
+        if low_priority:
+            return {"quality": "low_priority", "waited_minutes": waited, "note": "你把她排在游戏/娱乐后面，她会察觉自己优先级不高，主动性会下降。"}
+        return {"quality": "unclear", "waited_minutes": waited, "note": "你没有解释为什么晚回，她会保留判断。"}
 
     def _load_session_for_timeline(self) -> Dict[str, Any]:
         if threading.current_thread() is threading.main_thread():
@@ -1109,17 +1270,25 @@ class CrushCLI:
             slot = "深夜/睡前/情绪更松的时候"
         else:
             slot = "普通空闲时段"
+        initiative = float(state.get("initiative", 0.55))
+        warmth = float(state.get("warmth", 0.55))
+        ignored = int(state.get("ignored_streak", 0))
+        low_priority = int(state.get("low_priority_replies", 0))
         return (
             f"当前本地时间 {now.strftime('%Y-%m-%d %H:%M')}，时间段是{slot}。"
             f"距离你上一条消息后她已经等了约 {idle_after_npc} 分钟；"
             f"距离最近一次互动约 {inactive} 分钟。"
+            f"她当前主动性约 {initiative:.2f}，热情约 {warmth:.2f}，连续被忽略 {ignored} 次，低优先级回复累计 {low_priority} 次。"
             "请她根据自己的人格、主动性、好感、防御、最近聊天和这个时间段，决定并发出一条自然主动消息。"
-            "可以关心、试探、随手分享、轻轻追问，也可以低热度开话题；不要模板化，不要像闹钟。"
+            "如果主动性/热情下降，就不要热情刷屏；可以克制、试探、慢一点，甚至只是低热度开话题。"
+            "不要模板化，不要像闹钟，不要在对方未回复时连续换新话题。"
         )
 
     def print_reply(self, reply: str, turn: Dict[str, Any]) -> None:
         print()
-        print(color("╭─ Ta", C.rose, not self.plain))
+        stamp = datetime.fromtimestamp(float(turn.get("sent_at") or time.time())).strftime("%H:%M")
+        header = self.bubble_header("Ta", stamp)
+        print(color(header, C.rose, not self.plain))
         for line in wrap(reply, width=76).splitlines():
             print(color("│ ", C.rose, not self.plain) + line)
         print(color("╰", C.rose, not self.plain))
@@ -1144,6 +1313,11 @@ class CrushCLI:
         normalized = max(0.0, min(100.0, value if value >= 0 else value + 100))
         filled = int((normalized / 100.0) * width)
         return color("█" * filled, C.cyan, not self.plain) + color("░" * (width - filled), C.dim, not self.plain)
+
+    def bubble_header(self, name: str, stamp: str, width: int = 78) -> str:
+        left = f"╭─ {name}"
+        gap = max(1, width - visible_len(left) - visible_len(stamp))
+        return left + " " * gap + stamp
 
 
 def build_parser() -> argparse.ArgumentParser:
