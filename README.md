@@ -45,11 +45,7 @@ Crush.skill 把你喜欢的对象变成一个 5 层人格模型。你可以在�
 
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于浪漫关系动力学，这是人类最复杂、也最缺乏教育的领域之一。
 
-..
-
 ---  
-
-..
 
 ## 项目定位
 
@@ -60,11 +56,7 @@ Crush.skill 把你喜欢的对象变成一个 5 层人格模型。你可以在�
 
 两种形态共用同一套 runtime、状态机、记忆系统和蒸馏报告。
 
-<br/>
-
 ---
-
-<br/>
 
 ## 一分钟上手
 
@@ -87,17 +79,12 @@ crush
 | `/postmortem` | 复盘关系崩点、吸引力峰值、防御触发 |
 | `/stop` / `/continue` | 暂停或继续时间线主动消息 |
 
-<br/>
-
 ---
-
-<br/>
 
 ## 运行效果
 
 <p align="center">
   <img src="assets/readme-cli-demo.svg" alt="Crush.skill CLI demo" width="100%">
-</p>
 
 CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
