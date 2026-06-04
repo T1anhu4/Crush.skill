@@ -1,152 +1,153 @@
-<p align="center">
-  <img src="assets/crush-skill-logo.png" alt="Crush.skill logo" width="860">
+<p align="right">
+  <a href="README.md"><strong>中文 README</strong></a>
 </p>
 
 <p align="center">
-  <strong>Crush.skill</strong>
-  <br>
-  <em>Relationship Persona Simulation Engine for Claude Code, OpenClaw and QwenPaw</em>
+  <img src="assets/readme-hero.svg" alt="Crush.skill animated hero" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5"><img src="https://img.shields.io/badge/version-2.4.5-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6"><img src="https://img.shields.io/badge/version-2.4.6-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
-  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
+  <img src="https://img.shields.io/badge/branch-2.4-60a5fa?style=for-the-badge" alt="branch">
 </p>
 
 <p align="center">
-  <a href="#quick-start"><strong>Quick Start</strong></a>
+  <a href="#one-minute-start"><strong>One-Minute Start</strong></a>
   ·
-  <a href="#standalone-cli">Standalone CLI</a>
+  <a href="#demo">Demo</a>
   ·
-  <a href="#chat-record-import">Chat Import</a>
+  <a href="#why-it-does-not-feel-like-a-generic-ai-chatbot">Product Idea</a>
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6">Download Release</a>
 </p>
 
 ---
 
-## Product Positioning
-
-Crush.skill is an Agent-native **relationship persona simulation skill**. It distills chat history, relationship notes, or custom configuration into a persistent 5-layer persona model: speech patterns, emotional reactions, relationship stage, boundaries, shared context, and long-term memory.
-
-It is not a replacement for a real person, and it is not built for manipulation. Think of it as a **relationship flight simulator**: a safe place to practice understanding, expression, boundaries, and emotional presence.
-
-| What you need | How Crush.skill helps |
-|---------------|-----------------------|
-| Import real chat history | Extracts catchphrases, memes, boundaries, relationship phase, and their view of you |
-| Chat with a persona that feels specific | Uses hidden runtime prompts plus long-term memory so the Agent only shows in-character replies |
-| Avoid context-window forgetting | Combines SQLite persona memory, episode memory, summaries, and local retrieval |
-| Review why things cooled down | Surfaces state changes, attraction peaks, defense triggers, and frame-collapse risks |
-| Deploy across agent platforms | Supports Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, and Cursor |
-| Skip agent setup | Install the standalone CLI and run `crush` locally |
-
-## Why This Exists
-
-**Being single isn't because you're not good enough. It's because nobody taught you how relationships work.**
-
-Schools teach math, English, physics — but not a single class on love.
-
-Nobody tells you:
-- Why they grow colder the faster you reply
-- Why saying "I like you" makes them disappear
-- Why a great conversation suddenly becomes "we need space"
+## One Sentence
 
 **Crush.skill is a relationship flight simulator.**
 
-It turns the person you're interested in into a **5-layer personality model**. In this safe sandbox, you can:
-- Understand why they respond the way they do
-- See which of your words triggered their defenses
-- Discover when the relationship started breaking — and when you had a chance
-- Practice endlessly, so you're never fumbling in real life again
+It is not built to replace real people or teach manipulation. It combines imported chat history, persona modeling, timeline behavior, local memory, and relationship readouts so users can practice when to push, when to slow down, when a signal is only politeness, and when their own neediness is creating pressure.
 
-> Inspired by the Person-as-Skill movement — [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on **romantic relationship dynamics** — the most complex and least taught domain of human interaction.
+## One-Minute Start
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush.skill/2.4/scripts/install_cli.sh | bash
+crush
+```
+
+On first interactive launch, the CLI opens a model setup wizard if no model is configured:
+
+1. Choose a provider: OpenAI, Claude, Gemini, DeepSeek, Kimi, Qwen, or Custom.
+2. Enter the model name.
+3. Enter your API key.
+
+Common commands:
+
+| Command | Purpose |
+|---------|---------|
+| `/model` | Reconfigure provider, model name, and API key |
+| `/language` | Switch English, 简体中文, 繁體中文, Русский, 日本語 |
+| `/import` | Import real chat records and distill persona memory |
+| `/dashboard` | Inspect relationship state, warmth, initiative, defense, tension |
+| `/postmortem` | Review collapses, attraction peaks, and defense triggers |
+| `/stop` / `/continue` | Pause or resume timeline progression |
+
+## Demo
+
+<p align="center">
+  <img src="assets/readme-cli-demo.svg" alt="Crush.skill CLI demo" width="100%">
+</p>
+
+The CLI does not only show the persona reply. It also teaches the user how to read the turn:
+
+```text
+╭─ Ta                                                                    18:42
+│ Finally. Where are you now?
+│ I am about to leave too.
+╰
+Readout: normal push · risk medium · light flirt allowed, do not ask for validation
+Signal: she is interested enough to explore, but uncertainty still matters
+Next: answer with concrete location + low-pressure invite, no validation seeking
+```
+
+## Why It Does Not Feel Like A Generic AI Chatbot
+
+A generic chatbot tries to be helpful, agreeable, and emotionally available. Real people do not behave that way all the time.
+
+Crush.skill is built around four state machines:
+
+| State machine | What it does |
+|---------------|--------------|
+| **Persona Memory** | Stores catchphrases, memes, boundaries, shared context, and their view of you |
+| **Relationship State** | Nonlinear favorability, tension, defense, neediness, exploration, and frame control |
+| **Timeline State** | Ta waits, follows up, gets disappointed, and withdraws instead of sending timer spam |
+| **Coach Readout** | Labels each line as flirt, normal chat, validation seeking, hurtful push-pull, or boundary |
+
+### What We Borrowed From Recent GitHub Skills
+
+After reviewing the two projects you mentioned, the useful takeaways were product and data-design ideas, not their manipulation tactics:
+
+| Project | Useful idea | How Crush.skill adapts it |
+|---------|-------------|---------------------------|
+| `tong-jincheng-skill` | Transparent distillation from concrete source material into a practical mental model | We expose relationship readouts and training goals, but avoid turning the project into a PUA script engine |
+| `nuwa-skill` | Strong first-screen visual design, clear layered methodology, and visible validation process | We added hero animation, CLI demo animation, language switch, and a less dense README structure |
+
+## Core Capabilities
+
+| Training goal | How Crush.skill helps |
+|---------------|----------------------|
+| Read whether they are interested | Separates politeness, banter, flirtation, friend-frame, and real escalation |
+| Notice your own neediness | Detects validation seeking, intimate-name pressure, assumed consent, and over-questioning |
+| Keep tension without manipulation | Tells you when to lightly push, when to pull back, and when to switch topics |
+| Import real chat history | Extracts speech fingerprint, boundaries, relationship phase, shared memories, and long-term context |
+| Feel real timeline pressure | Ta waits, follows up, and withdraws if ignored instead of acting like a scheduled bot |
+| Review relationship dynamics | Surfaces frame collapses, attraction peaks, defense triggers, and next-move coaching |
+
+## Product Boundary
+
+Crush.skill is for relationship literacy and communication practice, not manipulation.
+
+- It does not encourage hurtful push-pull.
+- It does not encourage anxiety games, cold violence, or fake rejection as control.
+- It warns when a tactic damages trust.
+- Labels such as materialistic, fishing, slow-burn, polite, or interested should emerge from long-term behavior patterns, not one-line judgment.
 
 ---
 
-## v2.4.5: Human-Like Timeline State Machine
+## Latest Versions
 
-v2.4.5 upgrades CLI proactive messages from timer-based prompts into a more human waiting-and-withdrawing model:
+### v2.4.6 README Product Redesign
 
-- **Pending wait state**: after she sends a proactive message, she waits for your reply instead of constantly opening new topics.
-- **Patience window and follow-ups**: only after a natural waiting window will she follow up based on time of day, persona, and relationship heat.
-- **Warmth/initiative calculation**: long non-replies and low-priority replies reduce her warmth and initiative, making future proactive messages less frequent.
-- **Reply-quality analysis**: "I worked overtime and just got off" and "I was gaming and just finished" now affect her differently.
-- **Personal emotional withdrawal**: repeated ignored messages make her more restrained, a bit upset, and less proactive.
-- **Message timestamps**: Ta's chat bubbles show a right-aligned send time.
-- **Empty-reply protection**: timeline messages no longer surface `record_reply requires payload.npc_reply` when a model returns empty content.
+- Added animated hero SVG.
+- Added animated CLI demo SVG.
+- Added Chinese README switch button.
+- Reorganized README hierarchy for installation, demo, product idea, and architecture.
+- Moved changelog content below the product overview.
 
-## v2.4.4: Multilingual UI and Model Setup Wizard
+### v2.4.5 Human-Like Timeline State Machine
 
-v2.4.4 focuses on first-run product experience so open-source users do not have to guess configuration fields:
+- Proactive messages enter pending wait state instead of opening new topics repeatedly.
+- Long non-replies and low-priority replies reduce warmth and initiative.
+- Ta bubbles show right-aligned timestamps.
+- Empty model replies no longer surface `record_reply requires payload.npc_reply`.
 
-- **English by default**: fresh CLI installs now default to English.
-- **Language switcher**: `/language` and typo-compatible `/laguage` open an arrow-key picker for English, 简体中文, 繁體中文, Русский, and 日本語.
-- **Model wizard**: `/model` walks through provider, model name, and API key.
-- **First-run setup**: if no model is configured, interactive CLI startup automatically enters the model setup wizard.
-- **Provider presets**: OpenAI, Claude/Anthropic, Gemini/Google, DeepSeek, Kimi/Moonshot, Qwen/DashScope, and Custom.
-- **Real provider adapters**: Claude uses Anthropic Messages API, Gemini uses Google generateContent, and OpenAI/DeepSeek/Kimi/Qwen use OpenAI-compatible Chat Completions.
+### v2.4.4 Multilingual UI and Model Wizard
 
-## v2.4.3: Relationship Readout and Real-Stakes Persona Layer
+- English by default.
+- `/language` supports English, 简体中文, 繁體中文, Русский, 日本語.
+- `/model` supports OpenAI, Claude, Gemini, DeepSeek, Kimi, Qwen, and Custom.
+- Claude/Gemini use real provider adapters.
 
-v2.4.3 moves Crush.skill from "persona chat" toward a relationship-literacy trainer:
+### v2.4.3 Relationship Readout and Real-Stakes Persona Layer
 
-- **Relationship readout HUD**: each turn is classified as normal chat, flirt probe, validation seeking, intimacy escalation, hurtful push-pull, or boundary/soft decline.
-- **Real-stakes persona layer**: the persona is no longer endlessly accommodating and will not confirm "I like you" too quickly.
-- **Next-move coaching**: the CLI tells users whether to flirt, slow down, lower neediness, or switch to a concrete low-pressure topic.
-- **Classification foundation**: adds extensible reads for active/passive types, I/E tendency, friend-frame vs flirtation, slow-burn vs fishing, and material-request risk.
-- **Anti-manipulation stance**: risky push-pull is labeled as trust-damaging; the goal is literacy and boundaries, not manipulative tactics.
-
-## v2.4.2: Timeline Background Thread Stability
-
-v2.4.2 fixes a CLI timeline issue that could appear in macOS terminals when proactive messages ran in the background:
-
-- **Thread-safe timeline runtime**: the proactive-message thread now uses its own runtime and SQLite connection instead of reusing the main chat thread's database object.
-- **Regression coverage**: smoke tests now trigger proactive messaging from a real background thread to prevent `SQLite objects created in a thread...` regressions.
-- **2.4 maintenance branch**: 2.4.x patch releases are published from the `2.4` branch unless `main` is explicitly requested.
-
-## v2.4.1: More Realistic Boundaries and Anti-Repetition
-
-v2.4.1 makes fast romantic escalation feel more human and less game-like:
-
-- **Symbolic naming detection**: lines such as "I'll call you Camellia", "the flower means ideal love", or "if you don't reject it, I'll keep calling you that" are treated as naming-right escalation, romantic projection, and assumed-consent pressure.
-- **Anti-repetition prompting**: runtime prompts include recent verbatim context and explicitly forbid repeating the previous reply, the same joke, or the same bracketed action.
-- **State damping**: high-pressure escalation no longer creates sudden favorability spikes.
-- **Latest-message anchoring**: the persona must respond to the latest user message instead of drifting back to the previous topic.
-
-## v2.4: Timeline, Proactivity, and Better Neediness Detection
-
-v2.4 makes the CLI feel less like a turn-by-turn tool and more like a living chat window:
-
-- **Nickname boundary detection**: repeatedly asking whether you can call her intimate names such as baby/sister/wife is treated as pace pressure and intimacy permission seeking.
-- **Timeline progression**: when the CLI is open, local time keeps moving and can affect whether she proactively messages you.
-- **Proactive messages**: based on archetype, attachment style, favorability, exploration, defense, time of day, and recent interaction.
-- **Pause/resume time**: `/stop` pauses timeline progression and proactive messages; `/continue` resumes it.
-- **No fixed templates**: breakfast, commute, lunch, after-work, and bedtime are contextual signals, not hardcoded scripts.
-
----
-
-## v2.3: Agent Skill + Standalone CLI
-
-Crush.skill now ships in two product forms:
-
-- **Agent Skill**: import it into Claude Code, OpenClaw, or QwenPaw so the host Agent can call the relationship persona engine.
-- **Standalone CLI**: install the local `crush` command and chat directly, with persona and memory stored on your machine.
-
-The first CLI release includes local SQLite memory, startup animation, spinners, persona reply bubbles, `/setup`, `/import`, `/dashboard`, `/postmortem`, `/sessions`, and a lightweight YAML fallback for restricted/offline environments.
-
----
-
-## v2.2: More Like a Person, Less Like a Bot
-
-- **Imported persona persistence**: speech fingerprints, boundaries, inside jokes, and relationship context are saved to SQLite and reused in later `/chat` turns.
-- **Pragmatics Engine**: recognizes slang, memes, soft declines, pacing boundaries, and relationship tests before generating the runtime prompt.
-- **Roleplay-only agent protocol**: host agents should hide JSON/state data and show only the simulated person's natural reply.
-- **Chat history as memory**: imported chat snippets are stored as long-term episodes and retrieved later to reduce context-window forgetting.
-- **Optional mem0**: SQLite plus local retrieval works by default; mem0 is an opt-in semantic backend.
+- Detects flirt probes, validation seeking, intimacy escalation, and hurtful push-pull.
+- CLI prints risk level, signal read, and next move.
+- The persona is not endlessly agreeable and will not give full validation too quickly.
 
 ---
 

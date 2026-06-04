@@ -1,163 +1,153 @@
-<p align="center">
-  <img src="assets/crush-skill-logo.png" alt="Crush.skill logo" width="860">
+<p align="right">
+  <a href="README_EN.md"><strong>English README</strong></a>
 </p>
 
 <p align="center">
-  <strong>Crush.skill</strong>
-  <br>
-  <em>Relationship Persona Simulation Engine for Claude Code, OpenClaw and QwenPaw</em>
+  <img src="assets/readme-hero.svg" alt="Crush.skill animated hero" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5"><img src="https://img.shields.io/badge/version-2.4.5-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6"><img src="https://img.shields.io/badge/version-2.4.6-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
-  <img src="https://img.shields.io/badge/memory-SQLite%20%2B%20optional%20mem0-60a5fa?style=for-the-badge" alt="memory">
+  <img src="https://img.shields.io/badge/branch-2.4-60a5fa?style=for-the-badge" alt="branch">
 </p>
 
 <p align="center">
-  <a href="#快速开始"><strong>快速安装</strong></a>
+  <a href="#一分钟上手"><strong>一分钟上手</strong></a>
   ·
-  <a href="#独立-cli">独立 CLI</a>
+  <a href="#运行效果">运行效果</a>
   ·
-  <a href="#聊天记录导入">导入聊天记录</a>
+  <a href="#为什么它不像普通-ai-陪聊">产品理念</a>
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.5">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6">下载 Release</a>
 </p>
 
 ---
 
-## 产品定位
+## 一句话
 
-Crush.skill 是一个面向 Agent 的 **关系人格模拟 Skill**。它可以把聊天记录、现实关系描述或手动配置，蒸馏成一个可持续对话的 5 层人格模型：说话方式、情绪反应、关系阶段、边界、共同经历和长期记忆都会被保存下来。
+**Crush.skill 是一台关系飞行模拟器。**
 
-它不是为了替代真实的人，也不是为了操控谁。它更像一台 **关系飞行模拟器**：让你在安全环境里练习理解、表达、边界感和情绪接住能力。
+它不是教你操控别人，也不是替代真实关系；它把聊天记录、人格设定、时间线、长期记忆和关系读秒组合起来，让单身用户在安全环境里练习：什么时候该推进，什么时候该收，什么时候对方只是礼貌，什么时候已经有防御。
 
-| 你想做什么 | Crush.skill 怎么帮你 |
-|------------|----------------------|
-| 导入真实聊天记录 | 自动提取口头禅、梗、边界、关系阶段和 Ta 对你的看法 |
-| 和“像她”的人格对话 | 通过隐藏 runtime prompt + 长期记忆，让 Agent 只输出角色回复 |
-| 避免上下文变长后失忆 | SQLite persona memory + episode memory + summary + local retrieval |
-| 复盘关系为什么变冷 | 生成状态变化、吸引力峰值、防御触发和 frame collapse 风险 |
-| 在不同 Agent 中部署 | 支持 Claude Code、OpenClaw、QwenPaw、WorkBuddy、Codex、Cursor |
-| 不想折腾 Agent | 安装独立 CLI，直接运行 `crush` 打开本地对话 |
+## 一分钟上手
 
-## 为什么做这个
+```bash
+curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush.skill/2.4/scripts/install_cli.sh | bash
+crush
+```
 
-**母胎 solo 不是因为你不够好，而是因为你不懂"关系"。**
+首次进入 CLI 时，如果还没有模型配置，会自动打开模型向导：
 
-从小到大，学校教了数学、英语、物理 —— 但没有一节课教你怎么谈恋爱。
+1. 选择模型厂商：OpenAI、Claude、Gemini、DeepSeek、Kimi、Qwen 或 Custom。
+2. 输入模型名称。
+3. 输入 API Key。
 
-没有人告诉你：
-- 为什么你每条消息都秒回，对方却越来越冷淡
-- 为什么你说完"我喜欢你"，Ta 就消失了
-- 为什么明明聊得好好的，突然就"我们需要冷静一下"
+常用命令：
 
-**Crush.skill 是一台"关系飞行模拟器"。**
+| 命令 | 用途 |
+|------|------|
+| `/model` | 重新配置模型厂商、模型名、API Key |
+| `/language` | 切换 English、简体中文、繁體中文、Русский、日本語 |
+| `/import` | 导入真实聊天记录，蒸馏说话方式和关系记忆 |
+| `/dashboard` | 查看关系状态、热情、主动性、防御、张力 |
+| `/postmortem` | 复盘关系崩点、吸引力峰值、防御触发 |
+| `/stop` / `/continue` | 暂停或继续时间线 |
 
-它把你喜欢的对象变成一个 **5 层人格模型**。你可以在这个安全的沙盒里：
-- 理解 Ta 为什么会这样回应你
-- 看到你的哪句话触发了 Ta 的防御
-- 发现关系什么时候开始崩的、什么时候有过机会
-- 反复练习，在现实中不再手忙脚乱
+## 运行效果
 
-> 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于**浪漫关系动力学** —— 这是人类最复杂、也最缺乏教育的领域。
+<p align="center">
+  <img src="assets/readme-cli-demo.svg" alt="Crush.skill CLI demo" width="100%">
+</p>
 
----
+CLI 不只返回角色回复，还会给用户一个关系读秒：
 
-## v2.4.5 新能力：真人时间线状态机
+```text
+╭─ Ta                                                                    18:42
+│ 终于。你到哪了？
+│ 我刚好也准备走
+╰
+读秒: 普通推进 · 风险 中 · 可以轻推：不要问喜欢不喜欢
+判断: 有好感且愿意探索，但仍需要不确定性
+下一句: 回她具体位置 + 一句低压邀约，不要索取确认
+```
 
-v2.4.5 把 CLI 主动消息从“定时任务”升级成更像真人的等待与退缩机制：
+## 为什么它不像普通 AI 陪聊
 
-- **Pending 等待状态**：她主动发完一条消息后，会先等你的回复，不会不断换新话题刷屏。
-- **耐心窗口和追问**：超过自然等待时间后，才会根据时间段、人格和关系热度追问一次，比如深夜关心是否到家、早上委婉问到公司没。
-- **热情/主动性计算**：长期不回、低优先级回复会降低她的主动性和热情，下一次主动间隔会变长。
-- **回复质量分析**：`今晚加班得好晚，刚下班` 和 `刚刚在打游戏现在才打完` 会被判定为不同的重视程度。
-- **个人情绪退缩**：连续未回复后，她会更克制、有情绪、减少主动，而不是继续满格热情。
-- **消息时间显示**：Ta 的聊天气泡右上角会显示发送时间，让对话更像真实聊天窗口。
-- **空回复保护**：模型偶发返回空内容时不再报 `record_reply requires payload.npc_reply`。
+普通聊天机器人会尽量配合你、安慰你、回答你。现实里的异性不会一直这样。
 
-## v2.4.4 新能力：多语言和模型配置向导
+Crush.skill 的核心是四个状态机：
 
-v2.4.4 重点优化首次安装后的产品体验，让新用户不用手动猜配置：
+| 状态机 | 作用 |
+|--------|------|
+| **Persona Memory** | 从聊天记录里保存口头禅、梗、边界、共同经历、Ta 对你的看法 |
+| **Relationship State** | 非线性计算好感、张力、防御、需求感、探索欲、frame control |
+| **Timeline State** | 她主动发消息后会等待、追问、失望、退缩，而不是定时刷屏 |
+| **Coach Readout** | 告诉用户这句话是暧昧、普通、索取确认、伤害性拉扯还是边界保留 |
 
-- **默认英文界面**：新安装 CLI 默认使用英文，便于开源用户直接上手。
-- **多语言切换**：使用 `/language` 或兼容错拼 `/laguage`，通过 ↑/↓ 和 Enter 选择 English、简体中文、繁體中文、Русский、日本語。
-- **模型向导**：使用 `/model` 进入三层配置：模型厂商、模型名称、API Key。
-- **首次自动配置**：新用户第一次启动且没有模型配置时，会自动进入模型配置向导。
-- **厂商预设**：支持 OpenAI、Claude/Anthropic、Gemini/Google、DeepSeek、Kimi/Moonshot、Qwen/DashScope 和 Custom。
-- **真实 Provider Adapter**：Claude 走 Anthropic Messages API，Gemini 走 Google generateContent，OpenAI/DeepSeek/Kimi/Qwen 走 OpenAI-compatible Chat Completions。
+### 我们借鉴了什么
 
-## v2.4.3 新能力：关系读秒和真人压力层
+我看了你提到的两个项目后，最有价值的借鉴点是：
 
-v2.4.3 把 Crush.skill 从“像人聊天”推进到“能训练现实聊天判断”的版本：
+| 项目 | 值得借鉴的地方 | Crush.skill 的产品化处理 |
+|------|----------------|--------------------------|
+| `tong-jincheng-skill` | 用真实内容蒸馏出具体心智模型，README 直接展示素材来源、策略框架和示例 | 我们增加“关系读秒”和“训练目标”，但不蒸馏操控话术，避免变成PUA军师 |
+| `nuwa-skill` | README 第一屏有视觉冲击，结构分层清晰，有方法论和验证感 | 我们加入首页动图、CLI 动图、语言切换按钮，并把密集 changelog 后移 |
 
-- **关系读秒 HUD**：每轮识别这句话是普通聊天、暧昧试探、索取确认、亲密推进、伤害性拉扯还是边界保留。
-- **真人压力层**：角色不再永远配合，不会太快承认“喜欢”，被逼问态度时会尴尬、回避、反问或轻微防御。
-- **下一句建议**：CLI 会提示用户该不该抛暧昧话题、当前需求感高不高、下一句应该推进还是降压。
-- **关系分类底座**：加入推进型/被动型、I/E 倾向、朋友感 vs 暧昧感、鱼塘/慢热/物质索取风险等可扩展判断。
-- **反操控原则**：会提醒“伤害性拉扯”风险，目标是学会辨识和尊重边界，不是训练渣男渣女话术。
+## 核心能力
 
-## v2.4.2 修复：时间线后台线程稳定性
+| 你想训练什么 | Crush.skill 怎么帮你 |
+|--------------|----------------------|
+| 判断对方是不是有好感 | 区分接梗、礼貌、暧昧、真推进、朋友框架 |
+| 判断自己是否需求感过强 | 识别索取确认、亲密称呼推进、默认同意、过度追问 |
+| 学会保持张力 | 告诉你什么时候该轻推，什么时候该撤，什么时候该换低压话题 |
+| 导入真实聊天记录 | 提取口头禅、边界、关系阶段、共同经历和长期记忆 |
+| 感受真人时间线 | 她会等你、追问你、因为被忽略而退缩，不再像定时任务 |
+| 复盘关系 | 生成 frame collapse、吸引力峰值、防御触发和下一步建议 |
 
-v2.4.2 修复 CLI 时间线主动消息在 macOS 终端里可能出现的 SQLite 跨线程错误：
+## 产品边界
 
-- **线程安全时间线**：后台主动消息线程使用独立 runtime/SQLite 连接，不再复用主聊天线程的数据库对象。
-- **真实后台回归测试**：smoke test 会从后台线程触发主动消息，防止 `SQLite objects created in a thread...` 这类错误复发。
-- **2.4 维护分支**：2.4.x 小版本从 `2.4` 分支发布，除非明确要求，不再直接更新 `main`。
+Crush.skill 的目标是 **关系识别能力和表达能力训练**，不是操控别人。
 
-## v2.4.1 新能力：更真实的边界感和防复读
-
-v2.4.1 继续强化真实聊天质感，尤其是“浪漫推进过快时对方会本能后退”的细节：
-
-- **专属命名/花语绑定识别**：例如“我叫你 camellia 吧”“山茶花花语是理想的爱”“你不拒绝我就这么叫”，会被识别为命名权推进、浪漫投射和默认同意风险。
-- **防复读约束**：runtime prompt 会带入最近逐字上下文，明确禁止重复上一条回复、同一个包袱或同一个括号动作。
-- **关系分数阻尼**：高压力推进不会再让好感度突然暴涨，状态变化更像真人的缓慢升温/降温。
-- **答题锚定**：角色必须回应用户最新一句的具体含义，降低答非所问和沿用上一轮话题的概率。
-
-## v2.4 新能力：时间线、主动性和更敏感的需求感识别
-
-v2.4 让 CLI 更像一个真实聊天对象，而不是“你问一句它回一句”的工具：
-
-- **昵称边界/需求感识别**：反复问“能不能叫你宝宝/姐姐/老婆”等，会被识别为亲密许可索取和节奏推进，提升 `neediness_score`、`pressure_score` 和防御风险。
-- **时间线推进**：CLI 打开时会维护本地时间线，时间流逝会影响她是否主动发消息。
-- **主动消息**：根据人格原型、依恋类型、好感、探索、防御、当前时间段和最近互动，概率性生成主动开场或追问。
-- **暂停时间**：使用 `/stop` 暂停时间线和主动消息；使用 `/continue` 恢复。
-- **非模板化**：早餐、通勤、午饭、下班、睡前只是时间上下文，不是固定话术。
+- 不鼓励伤害性拉扯。
+- 不鼓励通过焦虑、冷暴力、假性拒绝控制对方。
+- 会提醒用户哪些话术会伤信任。
+- 会把“拜金/养鱼/慢热/礼貌”等判断做成概率和长期行为模式，而不是一句话贴标签。
 
 ---
 
-## v2.3 新能力：Skill 包 + 独立 CLI
+## 最新版本
 
-Crush.skill 现在有两种产品形态：
+### v2.4.6 README 产品化改版
 
-- **Agent Skill**：导入 Claude Code / OpenClaw / QwenPaw，让宿主 Agent 调用关系人格引擎。
-- **Standalone CLI**：用户本地安装 `crush` 命令，直接打开 CLI 对话，记忆和人格都保存在本机。
+- 新增首页动画 SVG。
+- 新增 CLI 运行效果动画 SVG。
+- README 顶部增加 English README 切换按钮。
+- 重新组织 README 信息架构，让安装、运行效果、产品理念、技术架构更清晰。
+- 将版本 changelog 后移，降低首屏阅读压力。
 
-CLI 首版内置：
+### v2.4.5 真人时间线状态机
 
-- 本地 `~/.crush/data` SQLite 记忆目录
-- 启动动画、spinner、角色气泡和命令面板
-- `/setup` 配置 OpenAI-compatible 模型
-- `/import` 导入聊天记录
-- `/dashboard`、`/postmortem`、`/sessions` 等本地管理命令
-- 网络受限时的轻量 YAML fallback，减少安装失败
+- 主动消息发出后进入 pending 等待状态，不再刷屏。
+- 长期不回和低优先级回复会降低 Ta 的主动性与热情。
+- Ta 的气泡右上角显示发送时间。
+- 修复空回复导致的 `record_reply requires payload.npc_reply`。
 
----
+### v2.4.4 多语言和模型配置向导
 
-## v2.2 新能力：更像真人，而不是人机
+- 默认英文界面。
+- `/language` 支持 English、简体中文、繁體中文、Русский、日本語。
+- `/model` 支持 OpenAI、Claude、Gemini、DeepSeek、Kimi、Qwen 和 Custom。
+- Claude/Gemini 使用真实 provider adapter。
 
-这次升级的重点不是让 NPC 更会“分析”，而是让它更会“像一个具体的人那样聊天”：
+### v2.4.3 关系读秒和真人压力层
 
-- **导入人格持久化**：聊天记录分析出的口头禅、边界、内部梗、关系阶段会写入 SQLite，后续 `/chat` 不会退回预设人格。
-- **梗与潜台词理解**：内置 Pragmatics Engine，可识别“地铁老人看手机”“抽象”“我真的会谢”“不是哥们”“看情况”“别太认真”等语境信号。
-- **角色输出协议**：Agent 调用 `/chat` 后应隐藏 JSON 和状态分数，只把 `runtime_prompt` 当系统提示，直接用 Ta 的口吻回复。
-- **聊天记录变长期记忆**：导入时会把最多 300 条历史聊天写入记忆库，后续按语义/关键词召回，不容易因为上下文变长而失忆。
-- **可选 mem0，不强依赖**：默认 SQLite + 本地向量检索已经可用；需要更强语义记忆时再启用 mem0。
-
-一句话说：v2.2 让 Crush.skill 从“会生成一个人格设定”变成“能长期维持一个人的说话纹理和关系惯性”。
+- 识别暧昧试探、索取确认、亲密推进、伤害性拉扯。
+- CLI 输出风险、对方信号和下一句建议。
+- 角色不会过度配合，不会轻易给满格确认。
 
 ---
 
