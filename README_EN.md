@@ -215,6 +215,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 | Version | Focus |
 |---------|-------|
+| `v2.4.10` | README visual fixes: no overlapping hero bubbles, smoother bottom-right fluid shape, wrapped architecture labels, and star-history.com chart. |
 | `v2.4.9` | README polish: fixed hero animation layering, added why-this-exists, product positioning, Runtime Actions, Star History, and author note. |
 | `v2.4.7` | Added `/distill` and `distillation_report`: evidence map, radar, playbook, validation limits. |
 | `v2.4.6` | Productized README, hero animation, CLI demo animation, bilingual switch. |
@@ -224,7 +225,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 ### Star History
 
-[![Star History Chart](https://starchart.cc/T1anhu4/Crush.skill.svg?variant=adaptive)](https://starchart.cc/T1anhu4/Crush.skill)
+[![Star History Chart](https://api.star-history.com/svg?repos=T1anhu4/Crush.skill&type=Date)](https://www.star-history.com/?type=date&repos=T1anhu4%2FCrush.skill)
 
 ---
 
