@@ -56,6 +56,7 @@ LANG: dict[str, dict[str, str]] = {
         "use_cmd": "switch session",
         "dashboard_cmd": "show relationship state",
         "postmortem_cmd": "relationship replay report",
+        "distill_cmd": "evidence-first persona and relationship distillation report",
         "stop_cmd": "pause timeline and proactive messages",
         "continue_cmd": "resume timeline and proactive messages",
         "config_cmd": "advanced raw config editing",
@@ -108,6 +109,7 @@ LANG: dict[str, dict[str, str]] = {
         "use_cmd": "切换会话",
         "dashboard_cmd": "查看关系状态",
         "postmortem_cmd": "关系复盘报告",
+        "distill_cmd": "基于证据的人格与关系蒸馏报告",
         "stop_cmd": "暂停时间线和主动消息",
         "continue_cmd": "继续时间线和主动消息",
         "config_cmd": "高级原始配置编辑",
@@ -160,6 +162,7 @@ LANG: dict[str, dict[str, str]] = {
         "use_cmd": "切換會話",
         "dashboard_cmd": "查看關係狀態",
         "postmortem_cmd": "關係復盤報告",
+        "distill_cmd": "基於證據的人格與關係蒸餾報告",
         "stop_cmd": "暫停時間線和主動消息",
         "continue_cmd": "繼續時間線和主動消息",
         "config_cmd": "進階原始配置編輯",
@@ -212,6 +215,7 @@ LANG: dict[str, dict[str, str]] = {
         "use_cmd": "switch session",
         "dashboard_cmd": "show relationship state",
         "postmortem_cmd": "relationship replay report",
+        "distill_cmd": "evidence-first relationship distillation report",
         "stop_cmd": "pause timeline",
         "continue_cmd": "resume timeline",
         "config_cmd": "advanced raw config editing",
@@ -264,6 +268,7 @@ LANG: dict[str, dict[str, str]] = {
         "use_cmd": "セッション切替",
         "dashboard_cmd": "関係状態を表示",
         "postmortem_cmd": "関係リプレイレポート",
+        "distill_cmd": "根拠ベースの関係蒸留レポート",
         "stop_cmd": "タイムライン停止",
         "continue_cmd": "タイムライン再開",
         "config_cmd": "高度な直接設定",
@@ -767,6 +772,8 @@ class CrushCLI:
                 self.dashboard()
             elif cmd == "/postmortem":
                 self.postmortem()
+            elif cmd == "/distill":
+                self.distill()
             elif cmd == "/stop":
                 self.pause_timeline()
             elif cmd == "/continue":
@@ -790,6 +797,7 @@ class CrushCLI:
             ("/use <session_id>", self.t("use_cmd")),
             ("/dashboard", self.t("dashboard_cmd")),
             ("/postmortem", self.t("postmortem_cmd")),
+            ("/distill", self.t("distill_cmd")),
             ("/stop", self.t("stop_cmd")),
             ("/continue", self.t("continue_cmd")),
             ("/config model|base|key <value>", self.t("config_cmd")),
@@ -894,6 +902,16 @@ class CrushCLI:
         print(f"  archetype: {analysis['inferred_archetype']} / {analysis['inferred_attachment']} / {analysis['inferred_mbti']}")
         print(f"  phrases: {', '.join(analysis.get('signature_phrases', [])[:6]) or 'none'}")
         print(f"  slang: {', '.join(analysis.get('slang_hits', [])[:6]) or 'none'}")
+        distillation = result.get("distillation_report") or {}
+        radar = distillation.get("relationship_radar") or {}
+        validation = distillation.get("validation") or {}
+        if radar:
+            print(color("Distillation preview:", C.bold, not self.plain))
+            print(f"  confidence: {validation.get('level', 'unknown')} / {validation.get('confidence', 0)}")
+            print(f"  active/passive: {radar.get('active_passive', 'unknown')}")
+            print(f"  friend/flirt: {radar.get('friend_or_flirt', 'unknown')}")
+            print(f"  boundary: {radar.get('warm_guarded', 'unknown')}")
+            print(color("  Run /distill for the full evidence map and training playbook.", C.dim, not self.plain))
 
     def sessions(self) -> None:
         result = self.runtime.run("list_sessions", self.session_id, {})
@@ -920,6 +938,11 @@ class CrushCLI:
 
     def postmortem(self) -> None:
         result = self.runtime.run("postmortem", self.session_id, {})
+        print(result["markdown"])
+
+    def distill(self) -> None:
+        with Spinner("Distilling evidence map and training playbook...", enabled=not self.plain):
+            result = self.runtime.run("distillation_report", self.session_id, {})
         print(result["markdown"])
 
     def where(self) -> None:

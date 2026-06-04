@@ -6,6 +6,7 @@ __all__ = [
     "coach_engine",
     "defense_engine",
     "dialogue_analyzer",
+    "distillation_engine",
     "memory_engine",
     "memory_backend",
     "persona_engine",

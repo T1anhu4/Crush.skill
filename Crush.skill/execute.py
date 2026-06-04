@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.6 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.7 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
   /custom-crush             — Build a fully custom persona
   /import-chats             — Import chat records (WeChat/WhatsApp/QQ/CSV)
   /chat [message]           — Send a message and see state changes
+  /crush-distill            — Relationship evidence distillation report
   /crush-dashboard          — View relationship state dashboard
   /crush-postmortem         — Relationship combat replay & diagnostics
   /list-crushes             — List all saved sessions
@@ -75,6 +76,7 @@ from engines.dialogue_analyzer import analyze_text
 from engines.memory_backend import HybridMemoryBackend
 from engines.chat_import import ChatImporter
 from engines.coach_engine import RelationshipCoach
+from engines.distillation_engine import RelationshipDistillationEngine
 from engines.reality_import_engine import RealityImportEngine
 from engines.replay_engine import ReplayEngine
 from engines.state_engine import StateEngine
@@ -88,6 +90,7 @@ class CrushSkillRuntime:
         self.memory = HybridMemoryBackend(DATA_DIR)
         self.reality_import = RealityImportEngine()
         self.chat_importer = ChatImporter()
+        self.distiller = RelationshipDistillationEngine()
         self.replay = ReplayEngine()
         self.coach = RelationshipCoach()
 
@@ -98,6 +101,7 @@ class CrushSkillRuntime:
             "custom_sandbox": self.custom_sandbox,
             "reality_import": self.reality_import_mode,
             "chat_import": self.chat_import_mode,
+            "distillation_report": self.distillation_report,
             "chat_turn": self.chat_turn,
             "record_reply": self.record_reply,
             "proactive_prompt": self.proactive_prompt,
@@ -172,6 +176,7 @@ class CrushSkillRuntime:
             raise ValueError("请提供聊天记录内容 (source_text)。你可以直接粘贴聊天记录，或指定文件路径 (source_text_file)。")
         messages = self.chat_importer.detect_and_parse(source_text)
         analysis = self.chat_importer.analyze(messages)
+        distillation = self.distiller.build_from_messages(messages, analysis)
         persona_dict = {
             "identity": {
                 "name": payload.get("config", {}).get("name", ""),
@@ -232,15 +237,43 @@ class CrushSkillRuntime:
             )
         self.memory.sqlite.append_timeline_event(session_id, "chat_import",
             f"从 {analysis.total_messages} 条聊天记录导入", analysis.to_dict())
+        self.memory.sqlite.append_timeline_event(session_id, "distillation_report",
+            "生成关系蒸馏报告", {
+                "confidence": distillation["validation"]["confidence"],
+                "radar": distillation["relationship_radar"],
+            })
         self.memory.sqlite.append_state_snapshot(session_id, state.to_dict(), {},
             ["chat_import"], f"导入: {analysis.total_messages}条消息")
         self.memory.sqlite.update_summary(session_id)
         return {"success": True, "action": "chat_import", "session_id": session_id,
                 "analysis": analysis.to_dict(), "persona": persona_obj.to_dict(),
+                "distillation_report": distillation,
                 "profile": profile.to_dict(), "state": state.to_dict(),
                 "dashboard": self._dashboard(state.to_dict(), {}),
                 "runtime_prompt": self.persona.build_runtime_prompt(persona_obj, state.to_dict(), {}, ""),
                 "memory_backend": self.memory.status.to_dict()}
+
+    def distillation_report(self, session_id: str, payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        payload = payload or {}
+        source_text = payload.get("source_text", "")
+        if source_text.strip():
+            messages = self.chat_importer.detect_and_parse(source_text)
+            analysis = self.chat_importer.analyze(messages)
+            report = self.distiller.build_from_messages(messages, analysis)
+        else:
+            session = self.memory.sqlite.load_session(session_id)
+            if not session:
+                raise ValueError(f"会话 '{session_id}' 不存在。先用 /start-crush 或 /import-chats 创建。")
+            episodes = self.memory.sqlite.get_recent_episodes(session_id, limit=int(payload.get("limit", 260)))
+            report = self.distiller.build_from_episodes(episodes)
+        return {
+            "success": True,
+            "action": "distillation_report",
+            "session_id": session_id,
+            "report": report,
+            "markdown": report["markdown"],
+            "memory_backend": self.memory.status.to_dict(),
+        }
 
     # ── Legacy reality_import ──────────────────────────────────────
     def reality_import_mode(self, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:

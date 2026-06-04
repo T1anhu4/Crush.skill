@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6"><img src="https://img.shields.io/badge/version-2.4.6-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7"><img src="https://img.shields.io/badge/version-2.4.7-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/branch-2.4-60a5fa?style=for-the-badge" alt="branch">
@@ -22,7 +22,7 @@
   ·
   <a href="#architecture">Architecture</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6">Download Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7">Download Release</a>
 </p>
 
 ---
@@ -53,6 +53,7 @@ Common commands:
 | `/model` | Reconfigure provider, model name, and API key |
 | `/language` | Switch English, 简体中文, 繁體中文, Русский, 日本語 |
 | `/import` | Import real chat records and distill persona memory |
+| `/distill` | Generate evidence map, relationship radar, and training playbook |
 | `/dashboard` | Inspect relationship state, warmth, initiative, defense, tension |
 | `/postmortem` | Review collapses, attraction peaks, and defense triggers |
 | `/stop` / `/continue` | Pause or resume timeline progression |
@@ -94,8 +95,8 @@ After reviewing the two projects you mentioned, the useful takeaways were produc
 
 | Project | Useful idea | How Crush.skill adapts it |
 |---------|-------------|---------------------------|
-| `tong-jincheng-skill` | Transparent distillation from concrete source material into a practical mental model | We expose relationship readouts and training goals, but avoid turning the project into a PUA script engine |
-| `nuwa-skill` | Strong first-screen visual design, clear layered methodology, and visible validation process | We added hero animation, CLI demo animation, language switch, and a less dense README structure |
+| `tong-jincheng-skill` | Transparent distillation from concrete source material into a practical mental model | We added a relationship distillation report: evidence map, radar, and training goals without turning the project into a PUA script engine |
+| `nuwa-skill` | Clear layered methodology, validation process, and honest boundaries | We split imports into expression DNA, boundaries, relationship heuristics, anti-patterns, and validation limits |
 
 ## Core Capabilities
 
@@ -105,6 +106,7 @@ After reviewing the two projects you mentioned, the useful takeaways were produc
 | Notice your own neediness | Detects validation seeking, intimate-name pressure, assumed consent, and over-questioning |
 | Keep tension without manipulation | Tells you when to lightly push, when to pull back, and when to switch topics |
 | Import real chat history | Extracts speech fingerprint, boundaries, relationship phase, shared memories, and long-term context |
+| Classify relationship signals | `/distill` surfaces active/passive, I/E tendency, slow-burn/fishing risk, friend/flirt window, and material/reciprocity risk |
 | Feel real timeline pressure | Ta waits, follows up, and withdraws if ignored instead of acting like a scheduled bot |
 | Review relationship dynamics | Surfaces frame collapses, attraction peaks, defense triggers, and next-move coaching |
 
@@ -120,6 +122,15 @@ Crush.skill is for relationship literacy and communication practice, not manipul
 ---
 
 ## Latest Versions
+
+### v2.4.7 Relationship Distillation Report
+
+- Added `/distill` CLI command and `distillation_report` skill action.
+- Import now shows a preview: active/passive, friend/flirt, boundary, guardedness, and confidence.
+- Added evidence map: every sensitive label is tied to concrete chat signals where possible.
+- Added relationship radar: active/passive, I/E tendency, warm/guarded, friend/flirt, slow-burn/fishing risk, material/reciprocity risk.
+- Added training playbook: next move, avoid list, practice drills, and ethical boundary.
+- Added validation limits: low sample size, missing timestamps, and weak evidence lower confidence instead of producing hard labels.
 
 ### v2.4.6 README Product Redesign
 
@@ -307,6 +318,7 @@ Everything works through slash commands inside your AI agent:
 | `/start-crush [archetype]` | Quick start with a preset personality. 5 archetypes available. |
 | `/custom-crush` | Full custom 5-layer persona. Control every dimension. |
 | `/import-chats` | Import chat records. Auto-infers personality and relationship state. |
+| `/crush-distill` | Evidence map, relationship radar, validation limits, and training playbook. |
 | `/chat [message]` | Send a message. See state changes, defense triggers, attraction peaks. |
 | `/crush-dashboard` | View 8-dimensional state dashboard. |
 | `/crush-postmortem` | Relationship combat replay: collapses, peaks, defenses, narrative. |

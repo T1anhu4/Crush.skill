@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6"><img src="https://img.shields.io/badge/version-2.4.6-ff6b8a?style=for-the-badge" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7"><img src="https://img.shields.io/badge/version-2.4.7-ff6b8a?style=for-the-badge" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2dd4bf?style=for-the-badge" alt="license"></a>
   <img src="https://img.shields.io/badge/python-3.10+-fbbf24?style=for-the-badge" alt="python">
   <img src="https://img.shields.io/badge/branch-2.4-60a5fa?style=for-the-badge" alt="branch">
@@ -22,7 +22,7 @@
   ·
   <a href="#技术架构">技术架构</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.6">下载 Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7">下载 Release</a>
 </p>
 
 ---
@@ -53,6 +53,7 @@ crush
 | `/model` | 重新配置模型厂商、模型名、API Key |
 | `/language` | 切换 English、简体中文、繁體中文、Русский、日本語 |
 | `/import` | 导入真实聊天记录，蒸馏说话方式和关系记忆 |
+| `/distill` | 生成证据地图、关系雷达和训练建议 |
 | `/dashboard` | 查看关系状态、热情、主动性、防御、张力 |
 | `/postmortem` | 复盘关系崩点、吸引力峰值、防御触发 |
 | `/stop` / `/continue` | 暂停或继续时间线 |
@@ -94,8 +95,8 @@ Crush.skill 的核心是四个状态机：
 
 | 项目 | 值得借鉴的地方 | Crush.skill 的产品化处理 |
 |------|----------------|--------------------------|
-| `tong-jincheng-skill` | 用真实内容蒸馏出具体心智模型，README 直接展示素材来源、策略框架和示例 | 我们增加“关系读秒”和“训练目标”，但不蒸馏操控话术，避免变成PUA军师 |
-| `nuwa-skill` | README 第一屏有视觉冲击，结构分层清晰，有方法论和验证感 | 我们加入首页动图、CLI 动图、语言切换按钮，并把密集 changelog 后移 |
+| `tong-jincheng-skill` | 用真实内容蒸馏出具体心智模型，README 直接展示素材来源、策略框架和示例 | 我们新增“关系蒸馏报告”：证据地图、关系雷达、训练建议，但不蒸馏操控话术，避免变成 PUA 军师 |
+| `nuwa-skill` | 方法论分层清晰，有蒸馏、验证和诚实边界的产品感 | 我们把导入记录拆成表达 DNA、心智/边界、推进启发式、反模式、验证限制，输出可复查的报告 |
 
 ## 核心能力
 
@@ -105,6 +106,7 @@ Crush.skill 的核心是四个状态机：
 | 判断自己是否需求感过强 | 识别索取确认、亲密称呼推进、默认同意、过度追问 |
 | 学会保持张力 | 告诉你什么时候该轻推，什么时候该撤，什么时候该换低压话题 |
 | 导入真实聊天记录 | 提取口头禅、边界、关系阶段、共同经历和长期记忆 |
+| 识别对方类型 | `/distill` 输出主动/被动、I/E 倾向、慢热/养鱼风险、朋友/暧昧窗口、物质/互惠风险 |
 | 感受真人时间线 | 她会等你、追问你、因为被忽略而退缩，不再像定时任务 |
 | 复盘关系 | 生成 frame collapse、吸引力峰值、防御触发和下一步建议 |
 
@@ -120,6 +122,15 @@ Crush.skill 的目标是 **关系识别能力和表达能力训练**，不是操
 ---
 
 ## 最新版本
+
+### v2.4.7 关系蒸馏报告
+
+- 新增 `/distill` CLI 命令和 `distillation_report` skill action。
+- 导入聊天记录后自动生成 preview：主动/被动、朋友/暧昧、边界、防备和置信度。
+- 新增证据地图：每个判断都尽量回溯到聊天原句和信号层。
+- 新增关系雷达：主动型/被动型、I/E 倾向、热情/防备、朋友框架/暧昧窗口、慢热/养鱼风险、物质/互惠风险。
+- 新增训练 playbook：下一步怎么聊、哪些话别说、如何降低需求感和尊重边界。
+- 新增验证限制：样本少、无时间戳、证据不足时会降置信度，不会一句话贴标签。
 
 ### v2.4.6 README 产品化改版
 
@@ -310,6 +321,7 @@ crush --data-dir ~/my-crush-memory
 /start-crush [archetype]    ← 快速启动，5 种预设人格
 /custom-crush               ← 完全自定义 5 层人格
 /import-chats               ← 导入聊天记录，自动重建人格
+/crush-distill              ← 证据地图、关系雷达和训练建议
 /chat [消息]                 ← 发送消息，查看状态变化
 /crush-dashboard            ← 8 维状态看板
 /crush-postmortem           ← 关系战斗复盘

@@ -1,10 +1,10 @@
 ---
 name: crush-skill
-description: Relationship Persona Simulation Engine. Build a digital twin from chat history or custom 5-layer persona. Slash commands: /start-crush, /custom-crush, /import-chats, /chat, /crush-dashboard, /crush-postmortem, /let-go, /list-crushes, /crush-llm. For dating-coaching, relationship analysis, chat record import, personality simulation.
+description: Relationship Persona Simulation Engine. Build a digital twin from chat history or custom 5-layer persona. Slash commands: /start-crush, /custom-crush, /import-chats, /crush-distill, /chat, /crush-dashboard, /crush-postmortem, /let-go, /list-crushes, /crush-llm. For dating-coaching, relationship analysis, chat record import, personality simulation.
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.4.6"
+  version: "2.4.7"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
@@ -28,8 +28,14 @@ When the user invokes `/chat [message]`:
 When the user invokes `/import-chats`:
 
 1. Parse/import the chat records with `chat_import`.
-2. Show a compact summary: inferred persona, speech fingerprint, inside jokes/slang, relationship state, and the session id.
+2. Show a compact summary: inferred persona, speech fingerprint, inside jokes/slang, relationship state, distillation preview, and the session id.
 3. Tell the user they can now say `/chat ...`; after that, follow the `/chat` protocol above.
+
+When the user invokes `/crush-distill`:
+
+1. Run `execute.py --action distillation_report --session-id <session>`.
+2. Show the returned Markdown report. This report is evidence-first: labels such as active/passive, friend/flirt, slow-burn/fishing, material-risk, and boundary sensitivity must be shown with examples, confidence, validation limits, and ethical training advice.
+3. Do not turn the report into PUA scripts. Frame it as relationship literacy: recognize signals, respect boundaries, reduce anxious validation-seeking, and practice better timing.
 
 Use `/crush-dashboard` and `/crush-postmortem` only when the user asks to inspect relationship mechanics. In ordinary chat, stay in character.
 
@@ -40,6 +46,7 @@ Use `/crush-dashboard` and `/crush-postmortem` only when the user asks to inspec
 | `/start-crush [archetype]` | Start a new session with a preset personality. Archetypes: `emotional`, `security`, `experience`, `value`, `passive`. |
 | `/custom-crush` | Build a fully custom 5-layer persona. Complete control over every dimension. |
 | `/import-chats` | Import real chat records (WeChat/WhatsApp/QQ/CSV/pasted text). Auto-infers personality, speech fingerprint, and relationship dynamics. |
+| `/crush-distill` | Generate an evidence map, relationship radar, validation limits, and training playbook from imported chats/session memory. |
 | `/chat [message]` | Send a message to the persona. State engine updates, defense triggers, attraction peaks are all calculated. |
 | `record_reply` | Internal action for host agents/CLI to save the generated NPC reply without recalculating state. |
 | `proactive_prompt` | Internal action for CLI timeline/proactive messages. Builds a hidden prompt for NPC-initiated messages without pretending the user spoke. |
@@ -84,13 +91,23 @@ After the host Agent generates the NPC reply, persist it with:
 python3 execute.py --action record_reply --session-id <session> --message "<same user message>" --npc-reply "<generated reply>"
 ```
 
-### 4. Check the Dashboard
+### 4. Distill Relationship Evidence
+```
+/crush-distill
+```
+Generates a transparent report:
+- Evidence map: which source lines support each label
+- Relationship radar: active/passive, I/E tendency, warm/guarded, friend/flirt, slow-burn/fishing, material-risk
+- Training playbook: what to try next, what to avoid, practice drills
+- Validation limits: confidence level and missing evidence
+
+### 5. Check the Dashboard
 ```
 /crush-dashboard
 ```
 Shows all 8 state dimensions with current values and recent events.
 
-### 5. Run a Postmortem
+### 6. Run a Postmortem
 ```
 /crush-postmortem
 ```
@@ -100,13 +117,13 @@ Get a complete diagnostic report:
 - Defense triggers — what made them put up walls
 - Narrative summary with actionable insights
 
-### 6. Let Go
+### 7. Let Go
 ```
 /let-go demo
 ```
 When you're ready. Deletes the session and gives you a closure message.
 
-### 7. LLM Configuration
+### 8. LLM Configuration
 ```
 /crush-llm
 ```
