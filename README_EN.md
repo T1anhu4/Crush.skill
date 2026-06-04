@@ -135,8 +135,6 @@ Core principle: **rules compute state and evidence; LLMs produce natural express
 | Memory | `engines/memory_engine.py` / `memory_backend.py` | SQLite long-term memory, local retrieval, optional mem0. |
 | CLI | `crush_cli/app.py` | Local terminal UI, model wizard, multilingual UI, proactive timeline messages. |
 
-For maintainer-level details, see [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
-
 ---
 
 ## Install As An Agent Skill
@@ -215,7 +213,6 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 | Version | Focus |
 |---------|-------|
-| `v2.4.10` | README visual fixes: no overlapping hero bubbles, smoother bottom-right fluid shape, wrapped architecture labels, and star-history.com chart. |
 | `v2.4.9` | README polish: fixed hero animation layering, added why-this-exists, product positioning, Runtime Actions, Star History, and author note. |
 | `v2.4.7` | Added `/distill` and `distillation_report`: evidence map, radar, playbook, validation limits. |
 | `v2.4.6` | Productized README, hero animation, CLI demo animation, bilingual switch. |

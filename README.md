@@ -136,8 +136,6 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 | Memory | `engines/memory_engine.py` / `memory_backend.py` | SQLite 长期记忆、本地检索、可选 mem0。 |
 | CLI | `crush_cli/app.py` | 本地终端 UI、模型向导、多语言、时间线主动消息。 |
 
-更详细的作者级技术说明见：[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)。
-
 ---
 
 ## 安装到 Agent
@@ -216,7 +214,6 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
 | 版本 | 重点 |
 |------|------|
-| `v2.4.10` | README 视觉修复：首页气泡不再重叠、右下流体补齐、架构图文本换行、Star History 切换为 star-history.com。 |
 | `v2.4.9` | README 二次打磨：修复首页动画层级，补充为什么做这个、项目定位、Runtime Actions、Star History 和作者寄语。 |
 | `v2.4.7` | 新增 `/distill` 和 `distillation_report`：证据地图、关系雷达、训练建议、验证限制。 |
 | `v2.4.6` | README 产品化、首页动画、CLI demo 动画、中英文切换。 |
@@ -245,7 +242,7 @@ Crush.skill 是关系识别和表达训练工具，不是操控工具。
 
 ## License
 
-MIT License. Free to use, modify, and distribute.
+本项目采用 MIT License，允许自由使用、修改和分发。
 
 ---
 
