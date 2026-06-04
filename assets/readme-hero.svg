@@ -1,94 +1,64 @@
 <svg width="1200" height="560" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Crush.skill 中文首页动画">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff7ed"/>
-      <stop offset="0.52" stop-color="#ffe4e6"/>
-      <stop offset="1" stop-color="#dff7f5"/>
-    </linearGradient>
-    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.98"/>
-      <stop offset="1" stop-color="#fff1f2" stop-opacity="0.96"/>
-    </linearGradient>
-    <linearGradient id="terminal" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#172033"/>
-      <stop offset="1" stop-color="#263241"/>
-    </linearGradient>
-    <filter id="shadow" x="-18%" y="-18%" width="136%" height="136%">
-      <feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#9f1239" flood-opacity="0.16"/>
-    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="0.52" stop-color="#ffe4e6"/><stop offset="1" stop-color="#dff7f5"/></linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.98"/><stop offset="1" stop-color="#fff1f2" stop-opacity="0.96"/></linearGradient>
+    <linearGradient id="terminal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#172033"/><stop offset="1" stop-color="#263241"/></linearGradient>
+    <filter id="shadow" x="-18%" y="-18%" width="136%" height="136%"><feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#9f1239" flood-opacity="0.16"/></filter>
     <style>
-      .title{font:800 62px Georgia, 'Times New Roman', serif; fill:#111827; letter-spacing:-1px}
-      .subtitle{font:600 24px ui-sans-serif, system-ui, sans-serif; fill:#334155}
-      .body{font:600 19px ui-sans-serif, system-ui, sans-serif; fill:#475569}
-      .small{font:600 16px ui-sans-serif, system-ui, sans-serif; fill:#64748b}
-      .pill{font:800 15px ui-sans-serif, system-ui, sans-serif; fill:#881337}
-      .cmd{font:700 18px ui-monospace, SFMono-Regular, Menlo, monospace; fill:#fff7ed}
-      .chat{font:700 18px ui-sans-serif, system-ui, sans-serif; fill:#172033}
-      .readout{font:800 16px ui-sans-serif, system-ui, sans-serif; fill:#92400e}
-      @keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-      @keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
-      @keyframes glow{0%,100%{opacity:.72}50%{opacity:1}}
-      @keyframes bubble{0%{opacity:0;transform:translateY(10px)}24%,88%{opacity:1;transform:translateY(0)}100%{opacity:.86;transform:translateY(0)}}
+      .title{font:800 60px Georgia,'Times New Roman',serif;fill:#111827;letter-spacing:-1px}.subtitle{font:700 23px ui-sans-serif,system-ui,sans-serif;fill:#334155}.body{font:650 18px ui-sans-serif,system-ui,sans-serif;fill:#475569}.small{font:650 16px ui-sans-serif,system-ui,sans-serif;fill:#64748b}.pill{font:800 15px ui-sans-serif,system-ui,sans-serif;fill:#881337}.cmd{font:750 17px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#fff7ed}.chat{font:750 18px ui-sans-serif,system-ui,sans-serif;fill:#172033}.readout{font:800 16px ui-sans-serif,system-ui,sans-serif;fill:#92400e}
+      @keyframes pinkFloat{0%,100%{transform:translate(0,0) scale(1)}35%{transform:translate(-18px,18px) scale(1.08)}70%{transform:translate(10px,-14px) scale(.96)}}
+      @keyframes greenFloat{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(26px,-22px) scale(1.1)}75%{transform:translate(-12px,16px) scale(.94)}}
+      @keyframes glow{0%,100%{opacity:.76}50%{opacity:1}}
+      @keyframes replyIn{0%,18%{opacity:0;transform:translateY(16px)}38%,100%{opacity:1;transform:translateY(0)}}
       @keyframes cursor{0%,45%{opacity:1}46%,100%{opacity:.18}}
-      .floatA{animation:floatA 5.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-      .floatB{animation:floatB 6.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-      .glow{animation:glow 2.6s ease-in-out infinite}.bubble{animation:bubble 5.6s ease-in-out infinite}.cursor{animation:cursor 1.1s steps(1) infinite}
+      .pink{animation:pinkFloat 7s ease-in-out infinite;transform-box:fill-box;transform-origin:center}.green{animation:greenFloat 8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}.glow{animation:glow 2.8s ease-in-out infinite}.reply{animation:replyIn 5.6s ease-in-out infinite}.cursor{animation:cursor 1.1s steps(1) infinite}
     </style>
   </defs>
   <rect width="1200" height="560" rx="34" fill="url(#bg)"/>
-  <circle class="floatA" cx="1054" cy="88" r="96" fill="#fb7185" opacity="0.17"/>
-  <circle class="floatB" cx="120" cy="458" r="130" fill="#2dd4bf" opacity="0.17"/>
-  <path d="M818 520 C950 410 1082 430 1200 342 L1200 560 L818 560 Z" fill="#fda4af" opacity="0.22"/>
+  <circle class="pink" cx="1046" cy="88" r="108" fill="#fb7185" opacity="0.20"/>
+  <circle class="green" cx="124" cy="462" r="142" fill="#2dd4bf" opacity="0.20"/>
+  <path d="M808 520 C938 392 1082 426 1200 328 L1200 560 L808 560 Z" fill="#fda4af" opacity="0.22">
+    <animate attributeName="d" dur="7s" repeatCount="indefinite" values="M808 520 C938 392 1082 426 1200 328 L1200 560 L808 560 Z;M768 520 C930 360 1060 458 1200 300 L1200 560 L768 560 Z;M830 520 C960 430 1100 390 1200 340 L1200 560 L830 560 Z;M808 520 C938 392 1082 426 1200 328 L1200 560 L808 560 Z"/>
+  </path>
 
-  <g transform="translate(74 78)">
+  <g transform="translate(70 76)">
     <text class="title" x="0" y="0">Crush.skill</text>
     <text class="subtitle" x="4" y="46">关系飞行模拟器，不是普通 AI 陪聊。</text>
     <text class="body" x="4" y="92">导入真实聊天记录，模拟关系张力，训练你读懂边界、</text>
     <text class="body" x="4" y="120">好感、需求感、主动性和下一步推进时机。</text>
-
     <g transform="translate(0 160)">
-      <rect x="0" y="0" width="124" height="38" rx="19" fill="#fff1f2" stroke="#fb7185"/>
-      <text class="pill" x="22" y="25">人格记忆</text>
-      <rect x="138" y="0" width="124" height="38" rx="19" fill="#ecfeff" stroke="#22d3ee"/>
-      <text class="pill" x="160" y="25" fill="#155e75">聊天导入</text>
-      <rect x="276" y="0" width="124" height="38" rx="19" fill="#fffbeb" stroke="#f59e0b"/>
-      <text class="pill" x="298" y="25" fill="#92400e">时间线</text>
-      <rect x="414" y="0" width="124" height="38" rx="19" fill="#f0fdf4" stroke="#22c55e"/>
-      <text class="pill" x="436" y="25" fill="#166534">关系读秒</text>
+      <rect x="0" y="0" width="122" height="38" rx="19" fill="#fff1f2" stroke="#fb7185"/><text class="pill" x="21" y="25">人格记忆</text>
+      <rect x="137" y="0" width="122" height="38" rx="19" fill="#ecfeff" stroke="#22d3ee"/><text class="pill" x="158" y="25" fill="#155e75">聊天导入</text>
+      <rect x="274" y="0" width="122" height="38" rx="19" fill="#fffbeb" stroke="#f59e0b"/><text class="pill" x="296" y="25" fill="#92400e">时间线</text>
+      <rect x="411" y="0" width="122" height="38" rx="19" fill="#f0fdf4" stroke="#22c55e"/><text class="pill" x="433" y="25" fill="#166534">关系读秒</text>
     </g>
-
-    <g class="glow" transform="translate(4 242)">
-      <rect x="0" y="0" width="472" height="74" rx="22" fill="url(#terminal)"/>
+    <g class="glow" transform="translate(4 244)">
+      <rect x="0" y="0" width="442" height="74" rx="22" fill="url(#terminal)"/>
       <text class="cmd" x="24" y="31">crush › /model</text>
-      <text class="cmd" x="24" y="56" fill="#bae6fd">/language  ·  /import  ·  /distill</text>
-      <rect class="cursor" x="452" y="39" width="10" height="18" fill="#fff7ed"/>
+      <text class="cmd" x="24" y="56" fill="#bae6fd">/import · /distill · /dashboard</text>
+      <rect class="cursor" x="418" y="39" width="10" height="18" fill="#fff7ed"/>
     </g>
   </g>
 
-  <g filter="url(#shadow)" transform="translate(650 64)">
-    <rect width="446" height="418" rx="28" fill="url(#panel)"/>
-    <rect x="24" y="24" width="398" height="48" rx="24" fill="#172033"/>
-    <text class="cmd" x="46" y="55" fill="#f8fafc">default › 下班了下班了</text>
-
-    <g class="bubble" transform="translate(34 104)">
-      <rect x="0" y="0" width="368" height="92" rx="24" fill="#ffffff" stroke="#fecdd3"/>
-      <text class="small" x="306" y="27">18:42</text>
-      <text class="chat" x="24" y="42">终于。你到哪了？</text>
-      <text class="chat" x="24" y="68">我刚好也准备走。</text>
+  <g filter="url(#shadow)" transform="translate(610 58)">
+    <rect width="466" height="438" rx="28" fill="url(#panel)"/>
+    <rect x="34" y="32" width="392" height="50" rx="25" fill="#172033"/>
+    <text class="cmd" x="58" y="63" fill="#f8fafc">default › 下班了下班了</text>
+    <g class="reply" transform="translate(44 116)">
+      <rect x="0" y="0" width="376" height="94" rx="24" fill="#ffffff" stroke="#fecdd3"/>
+      <text class="small" x="314" y="28">18:42</text>
+      <text class="chat" x="24" y="43">终于。你到哪了？</text>
+      <text class="chat" x="24" y="70">我刚好也准备走。</text>
     </g>
-
-    <g transform="translate(34 224)">
-      <rect x="0" y="0" width="368" height="104" rx="22" fill="#fffbeb" stroke="#facc15"/>
-      <text class="readout" x="22" y="30">读秒：普通推进 · 风险中</text>
-      <text class="small" x="22" y="58">下一句：回应具体位置，轻轻邀约；</text>
-      <text class="small" x="22" y="82">不要立刻追问“你喜不喜欢我”。</text>
+    <g transform="translate(44 244)">
+      <rect x="0" y="0" width="376" height="106" rx="22" fill="#fffbeb" stroke="#facc15"/>
+      <text class="readout" x="22" y="31">读秒：普通推进 · 风险中</text>
+      <text class="small" x="22" y="60">下一句：回应具体位置，轻轻邀约；</text>
+      <text class="small" x="22" y="84">不要立刻追问“你喜不喜欢我”。</text>
     </g>
-
-    <g transform="translate(34 356)">
-      <rect x="0" y="0" width="176" height="34" rx="17" fill="#ecfeff" stroke="#67e8f9"/>
-      <text class="small" x="22" y="23">等待你回复</text>
-      <rect x="192" y="0" width="176" height="34" rx="17" fill="#fff1f2" stroke="#fda4af"/>
-      <text class="small" x="214" y="23">热情会变化</text>
+    <g transform="translate(44 378)">
+      <rect x="0" y="0" width="180" height="34" rx="17" fill="#ecfeff" stroke="#67e8f9"/><text class="small" x="23" y="23">等待你回复</text>
+      <rect x="196" y="0" width="180" height="34" rx="17" fill="#fff1f2" stroke="#fda4af"/><text class="small" x="218" y="23">热情会变化</text>
     </g>
   </g>
 </svg>

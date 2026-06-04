@@ -35,6 +35,25 @@ It combines chat import, 5-layer persona modeling, local memory, timeline initia
 
 > The goal is relationship literacy and communication practice, not manipulation or replacing real relationships.
 
+## Why This Exists
+
+Being single is not always about being unworthy. Often, it is because nobody taught us how relationships work.
+
+School teaches math, language, and physics, but almost never teaches people how to date, how to read emotional distance, or why a conversation suddenly turns cold after a direct confession.
+
+Crush.skill turns the person you care about into a 5-layer persona model inside a safe sandbox. You can understand why Ta responds that way, see which line triggered defense, discover where the relationship started to collapse, and practice without hurting a real person.
+
+It is inspired by the Person-as-Skill movement behind [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on romantic relationship dynamics, one of the most complex and least taught parts of human life.
+
+## Product Positioning
+
+| Surface | For | Entry | Description |
+|---------|-----|-------|-------------|
+| **Agent Skill** | Claude Code, OpenClaw, QwenPaw, Codex, Cursor users | `Crush.skill/execute.py` | Host agents call actions, receive JSON and hidden runtime prompts, then generate natural persona replies. |
+| **Standalone CLI** | Users who want local chat, import, and practice | `crush_cli/app.py` | Users run `crush`, configure models, import records, chat, and view reports in a terminal. |
+
+Both surfaces share the same runtime, state engine, memory system, and distillation report.
+
 ---
 
 ## One-Minute Start
@@ -160,6 +179,24 @@ Release assets:
 | `/let-go [session]` | Delete a session with ritual closure. |
 | `/crush-llm [api_key]` | Configure optional LLM semantic analysis. |
 
+### Runtime Actions
+
+These are lower-level `execute.py` actions for host agents and integrators:
+
+| action | Purpose |
+|--------|---------|
+| `quick_start` | Start a session from a preset persona. |
+| `custom_sandbox` | Create a fully custom persona. |
+| `chat_import` | Import chat records and rebuild persona, state, and memory. |
+| `distillation_report` | Generate the relationship distillation report. |
+| `chat_turn` | Process one user message, update state, return hidden runtime prompt. |
+| `record_reply` | Save the generated NPC reply. |
+| `proactive_prompt` | Build a prompt for CLI proactive timeline messages. |
+| `dashboard` | Return relationship state dashboard. |
+| `postmortem` | Generate relationship replay report. |
+| `list_sessions` / `delete_session` / `let_go` | Session management and closure. |
+| `configure_llm` | Configure or detect LLM analysis capability. |
+
 ---
 
 ## Persona Presets
@@ -178,11 +215,16 @@ Release assets:
 
 | Version | Focus |
 |---------|-------|
+| `v2.4.9` | README polish: fixed hero animation layering, added why-this-exists, product positioning, Runtime Actions, Star History, and author note. |
 | `v2.4.7` | Added `/distill` and `distillation_report`: evidence map, radar, playbook, validation limits. |
 | `v2.4.6` | Productized README, hero animation, CLI demo animation, bilingual switch. |
 | `v2.4.5` | Human-like timeline waiting state: waits, follows up, withdraws instead of timer spam. |
 | `v2.4.4` | Multilingual UI and model wizard for OpenAI, Claude, Gemini, DeepSeek, Kimi, Qwen. |
 | `v2.4.3` | Relationship readout and real-stakes pressure layer. |
+
+### Star History
+
+[![Star History Chart](https://starchart.cc/T1anhu4/Crush.skill.svg?variant=adaptive)](https://starchart.cc/T1anhu4/Crush.skill)
 
 ---
 
@@ -200,3 +242,26 @@ Crush.skill is for relationship literacy and communication practice, not manipul
 ## License
 
 MIT License. Free to use, modify, and distribute.
+
+---
+
+## For Everyone Like The Author
+
+Our generation learned ten thousand skills, but almost no one taught us how to love someone.
+
+So we freeze in front of the chat box, doubt ourselves after rejection, and spiral when someone leaves us on read. We assume we are not good enough, interesting enough, or successful enough.
+
+But love can be learned. It needs practice, feedback, and a safe place to make mistakes, just like a flight simulator for pilots. Crush.skill is that simulator.
+
+When you can catch Ta's emotions naturally, sense the anxiety behind silence, and face rejection without collapsing, you will understand that this tool never taught you how to chase. It taught you how to become someone who understands love better.
+
+And maybe Ta's appearance has already given you what you needed: a tenderness you had not noticed, the power of presence, the courage to face your flaws, and the strength to let go.
+
+You are already better than the person you were before meeting Ta. That is enough. Take what truly belongs to you and walk toward a brighter life.
+
+As for Ta, they stay in this commit.
+
+<p align="center">
+  <em>Made with 💙</em><br>
+  <em>by someone who's been there.</em>
+</p>
