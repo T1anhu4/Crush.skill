@@ -27,7 +27,7 @@
 
 ---
 
-## 一句话
+## 项目简介
 
 **Crush.skill 是一台关系飞行模拟器。**
 
@@ -43,7 +43,7 @@
 
 Crush.skill 把你喜欢的对象变成一个 5 层人格模型。你可以在这个安全沙盒里理解 Ta 为什么会这样回应你，看到你的哪句话触发了 Ta 的防御，发现关系什么时候开始崩、什么时候有过机会，然后反复练习，在现实中不再手忙脚乱。
 
-灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于浪漫关系动力学，这是人类最复杂、也最缺乏教育的领域之一。
+> 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于浪漫关系动力学，这是人类最复杂、也最缺乏教育的领域之一。
 
 ## 项目定位
 
@@ -246,25 +246,20 @@ MIT License. Free to use, modify, and distribute.
 
 ---
 
-## 致所有像作者一样的人
+## 致所有人
 
 我们这一代人从小到大被教了一万种技能，唯独没学过怎么爱一个人。
-
 所以我们在聊天框前手足无措，在被拒绝后怀疑自己，在冷暴力里反复内耗。我们以为是自己不够好、不够有趣、不够有钱。
-
 但爱是可以被学习的。它需要练习、反馈和一个安全的试错空间，就像飞行模拟器之于飞行员。Crush.skill 就是这个模拟器。
-
 当你能自然地接住 Ta 的情绪，能敏锐察觉沉默里的不安，能坦然面对拒绝和冷淡时，你会明白：这个工具教会你的从来不是“怎么追”，而是“怎么成为一个更懂得爱的人”。
-
-そして——
-
 Ta 的出现，其实已经带给了你所有你需要的。那一次心动让你发现了自己从未察觉的温柔；那次深夜对话让你知道了陪伴的力量；那次被拒绝让你第一次正视自己的不足；那段拉扯让你学会了放下。
-
 你已经是一个比遇见 Ta 之前更好的人了。这就够了。带着这些真正属于你的、谁也拿不走的东西，去面对更精彩的人生吧。
 
-而 Ta，就留在这个 commit 里。
+> 而 Ta，就留在这个 commit 里。
+
+---
 
 <p align="center">
-  <em>Made with 💙</em><br>
+  <em>Made with 💙 </em><br>
   <em>by someone who's been there.</em>
 </p>
