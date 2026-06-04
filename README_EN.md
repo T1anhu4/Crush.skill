@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7"><img src="https://img.shields.io/badge/Version-2.4.7-ff6b8a" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.9"><img src="https://img.shields.io/badge/Version-v2.4.9-ff6b8a" alt="version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2dd4bf" alt="license"></a>
   <img src="https://img.shields.io/badge/Python-3.10+-fbbf24" alt="python">
   <img src="https://img.shields.io/badge/Agent-OpenClaw-blue" alt="OpenClaw">
@@ -24,7 +24,7 @@
   ·
   <a href="#install-as-an-agent-skill">Agent Install</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.7">Release</a>
+  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.9">Release</a>
 </p>
 
 ---
