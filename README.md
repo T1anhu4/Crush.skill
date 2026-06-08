@@ -260,6 +260,7 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
 | 版本 | 重点 |
 |------|------|
+| `v2.4.13` | 修复 WeFlow 同文件跨 session 导入冲突和 SQLite 锁竞争，新增 `/reset` 清空当前 session。 |
 | `v2.4.12` | 新增 WeFlow JSON 导入：自动脱敏、切分 dialogue chunks、构建 target reply examples / clusters、语言风格卡和本地 fallback 检索。 |
 | `v2.4.9` | README 二次打磨：修复首页动画层级，补充为什么做这个、项目定位、Runtime Actions、Star History 和作者寄语。 |
 | `v2.4.7` | 新增 `/distill` 和 `distillation_report`：证据地图、关系雷达、训练建议、验证限制。 |

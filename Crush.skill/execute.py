@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.12 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.13 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -265,6 +265,7 @@ class CrushSkillRuntime:
             raise ValueError("weflow_import requires payload.source_text or payload.source_file")
         bundle = buildMemoryFromImportedChat(source)
         save_result = self.memory.sqlite.save_weflow_bundle(session_id, bundle)
+        import_id = save_result.get("import_id", bundle.import_id)
         profile_data = bundle.persona_profile
         expression = profile_data.get("expression", {})
         reply_length = profile_data.get("reply_length", {})
@@ -309,18 +310,18 @@ class CrushSkillRuntime:
             session_id,
             "weflow_import",
             f"WeFlow JSON 导入 {bundle.stats.get('normalized', 0)} 条消息，构建风格记忆",
-            {"import_id": bundle.import_id, "stats": bundle.stats},
+            {"import_id": import_id, "stats": bundle.stats},
         )
         self.memory.sqlite.append_state_snapshot(session_id, state.to_dict(), {}, ["weflow_import"], "WeFlow 风格记忆导入")
         self.memory.sqlite.update_summary(session_id)
-        self._write_weflow_profile_files(session_id, bundle)
+        self._write_weflow_profile_files(session_id, bundle, import_id)
         memory_ctx = self.memory.sqlite.build_memory_context(session_id, query="日常微信聊天 风格样本", limit=4)
         return {
             "success": True,
             "action": "weflow_import",
             "session_id": session_id,
             "already_imported": save_result.get("already_imported", False),
-            "import_id": bundle.import_id,
+            "import_id": import_id,
             "stats": bundle.stats,
             "save_result": save_result,
             "persona_profile": bundle.persona_profile,
@@ -344,8 +345,8 @@ class CrushSkillRuntime:
         self.memory.sqlite.update_summary(session_id)
         return {"success": True, "action": "delete_import", "session_id": session_id, "import_id": import_id, "deleted": True}
 
-    def _write_weflow_profile_files(self, session_id: str, bundle: Any) -> None:
-        out_dir = DATA_DIR / "weflow" / session_id / bundle.import_id
+    def _write_weflow_profile_files(self, session_id: str, bundle: Any, import_id: str | None = None) -> None:
+        out_dir = DATA_DIR / "weflow" / session_id / (import_id or bundle.import_id)
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "persona_profile.json").write_text(json.dumps(bundle.persona_profile, ensure_ascii=False, indent=2), encoding="utf-8")
         (out_dir / "persona_profile.md").write_text(bundle.persona_profile_md, encoding="utf-8")
@@ -933,7 +934,7 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.12")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.13")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")

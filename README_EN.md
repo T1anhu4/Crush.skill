@@ -259,6 +259,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 | Version | Focus |
 |---------|-------|
+| `v2.4.13` | Fixed WeFlow same-file cross-session import collisions and SQLite lock contention; added `/reset` for clearing the current session. |
 | `v2.4.12` | Added WeFlow JSON import: sanitization, dialogue chunks, target reply examples/clusters, language style card, and local fallback retrieval. |
 | `v2.4.9` | README polish: fixed hero animation layering, added why-this-exists, product positioning, Runtime Actions, Star History, and author note. |
 | `v2.4.7` | Added `/distill` and `distillation_report`: evidence map, radar, playbook, validation limits. |

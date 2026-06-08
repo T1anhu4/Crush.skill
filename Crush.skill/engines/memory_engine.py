@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -34,8 +35,15 @@ class MemoryEngine:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(str(self.db_path))
+        self.conn = sqlite3.connect(str(self.db_path), timeout=30.0, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA busy_timeout=30000")
+        try:
+            self.conn.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError:
+            # Another running CLI may already hold the database. Keep startup
+            # usable; busy_timeout still makes ordinary writes wait politely.
+            pass
         self._init_db()
 
     def _init_db(self) -> None:
@@ -478,6 +486,8 @@ class MemoryEngine:
                 "import_id": existing["import_id"],
                 "stats": json.loads(existing["stats_json"]),
             }
+        base_import_id = data["import_id"]
+        import_id = self._session_import_id(session_id, data["file_hash"], base_import_id)
         now = self._now()
         self.conn.execute(
             """
@@ -485,7 +495,7 @@ class MemoryEngine:
             VALUES(?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                data["import_id"],
+                import_id,
                 session_id,
                 data["file_hash"],
                 data["session_hash"],
@@ -504,7 +514,7 @@ class MemoryEngine:
                     """,
                     (
                         session_id,
-                        data["import_id"],
+                        import_id,
                         msg["contentHash"],
                         msg["speaker"],
                         msg["content"],
@@ -516,15 +526,15 @@ class MemoryEngine:
             except Exception:
                 continue
         artifact_count = 0
-        artifact_count += self._save_artifact_many(session_id, data["import_id"], "target_reply_example", data.get("target_reply_examples", []), "embeddingText", 1.0)
-        artifact_count += self._save_artifact_many(session_id, data["import_id"], "target_reply_cluster", data.get("target_reply_clusters", []), "embeddingText", 0.95)
-        artifact_count += self._save_artifact_many(session_id, data["import_id"], "dialogue_chunk", data.get("dialogue_chunks", []), "text", 0.62)
-        artifact_count += self._save_artifact_many(session_id, data["import_id"], "timeline_summary", data.get("timeline_summary", []), "summary", 0.35)
+        artifact_count += self._save_artifact_many(session_id, import_id, "target_reply_example", data.get("target_reply_examples", []), "embeddingText", 1.0)
+        artifact_count += self._save_artifact_many(session_id, import_id, "target_reply_cluster", data.get("target_reply_clusters", []), "embeddingText", 0.95)
+        artifact_count += self._save_artifact_many(session_id, import_id, "dialogue_chunk", data.get("dialogue_chunks", []), "text", 0.62)
+        artifact_count += self._save_artifact_many(session_id, import_id, "timeline_summary", data.get("timeline_summary", []), "summary", 0.35)
         profile_text = data.get("persona_profile_md", "")
         if profile_text:
             artifact_count += self._save_artifact_many(
                 session_id,
-                data["import_id"],
+                import_id,
                 "persona_profile",
                 [{"artifactId": "persona_profile", "text": profile_text, **data.get("persona_profile", {})}],
                 "text",
@@ -533,11 +543,22 @@ class MemoryEngine:
         self.conn.commit()
         return {
             "already_imported": False,
-            "import_id": data["import_id"],
+            "import_id": import_id,
+            "source_import_id": base_import_id,
             "stats": data["stats"],
             "inserted_messages": inserted_messages,
             "artifact_count": artifact_count,
         }
+
+    def _session_import_id(self, session_id: str, file_hash: str, base_import_id: str) -> str:
+        existing = self.conn.execute(
+            "SELECT session_id FROM import_records WHERE import_id=?",
+            (base_import_id,),
+        ).fetchone()
+        if not existing or existing["session_id"] == session_id:
+            return base_import_id
+        digest = hashlib.sha256(f"{session_id}|{file_hash}".encode("utf-8")).hexdigest()[:16]
+        return f"wf_{digest}"
 
     def _save_artifact_many(self, session_id: str, import_id: str, artifact_type: str, items: List[Dict[str, Any]], text_key: str, weight: float) -> int:
         count = 0

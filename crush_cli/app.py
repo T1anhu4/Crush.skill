@@ -762,6 +762,8 @@ class CrushCLI:
                 self.config_command(args)
             elif cmd == "/start":
                 self.start(args)
+            elif cmd == "/reset":
+                self.reset_current_session()
             elif cmd == "/import":
                 self.import_chats(args)
             elif cmd == "/import-weflow":
@@ -800,6 +802,7 @@ class CrushCLI:
             ("/language", self.t("language_cmd")),
             ("/setup", self.t("setup")),
             ("/start [archetype] [name]", self.t("start_cmd")),
+            ("/reset", "clear current session memory and imported records"),
             ("/import [file]", self.t("import_cmd")),
             ("/import-weflow <file>", "import WeFlow JSON and build style memory"),
             ("/import-status", "show imported memory status"),
@@ -894,6 +897,14 @@ class CrushCLI:
         )
         print(color(f"Started {self.session_id}: {result['canonical_archetype']} / {name}", C.green, not self.plain))
 
+    def reset_current_session(self) -> None:
+        self.runtime.run("delete_session", self.session_id, {})
+        timeline_all = self.config.setdefault("timeline", {})
+        timeline_all.pop(self.session_id, None)
+        save_config(self.config_file, self.config)
+        print(color(f"Reset session: {self.session_id}", C.green, not self.plain))
+        print(color("Now import chats with /import-weflow or start a new practice persona with /start.", C.dim, not self.plain))
+
     def import_chats(self, args: list[str]) -> None:
         if args:
             text = Path(args[0]).expanduser().read_text(encoding="utf-8")
@@ -929,8 +940,17 @@ class CrushCLI:
         if not args:
             raise ValueError("Usage: /import-weflow <weflow.json>")
         path = str(Path(args[0]).expanduser())
-        with Spinner("Importing WeFlow JSON and building style memory...", enabled=not self.plain):
-            result = self.runtime.run("weflow_import", self.session_id, {"source_file": path})
+        timeline = self.timeline_state()
+        was_paused = bool(timeline.get("paused"))
+        timeline["paused"] = True
+        self.save_timeline_state(timeline)
+        try:
+            with Spinner("Importing WeFlow JSON and building style memory...", enabled=not self.plain):
+                result = self.runtime.run("weflow_import", self.session_id, {"source_file": path})
+        finally:
+            timeline = self.timeline_state()
+            timeline["paused"] = was_paused
+            self.save_timeline_state(timeline)
         self.print_weflow_import_result(result)
 
     def print_weflow_import_result(self, result: Dict[str, Any]) -> None:

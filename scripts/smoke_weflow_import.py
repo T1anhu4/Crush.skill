@@ -12,8 +12,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "Crush.skill"
 sys.path.insert(0, str(SKILL))
 
-from execute import CrushSkillRuntime  # noqa: E402
-
 
 def sample() -> dict:
     return {
@@ -36,6 +34,8 @@ def main() -> int:
     data_dir = Path(tempfile.mkdtemp(prefix="crush_weflow_smoke_"))
     try:
         os.environ["CRUSH_DATA_DIR"] = str(data_dir)
+        from execute import CrushSkillRuntime  # noqa: E402
+
         runtime = CrushSkillRuntime()
         source = json.dumps(sample(), ensure_ascii=False)
         result = runtime.run("weflow_import", "default", {"source_text": source})
@@ -46,6 +46,13 @@ def main() -> int:
         assert result["stats"]["target_reply_clusters"] >= 1
         again = runtime.run("weflow_import", "default", {"source_text": source})
         assert again["already_imported"] is True
+        other = runtime.run("weflow_import", "weixin", {"source_text": source})
+        assert other["success"]
+        assert other["already_imported"] is False
+        assert other["import_id"] != result["import_id"]
+        other_again = runtime.run("weflow_import", "weixin", {"source_text": source})
+        assert other_again["already_imported"] is True
+        assert other_again["import_id"] == other["import_id"]
         turn = runtime.run("chat_turn", "default", {"message": "今天写代码好累啊", "mode": "companion"})
         prompt = turn["runtime_prompt"]
         assert "虚构化微信聊天陪伴角色" in prompt
@@ -62,4 +69,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
