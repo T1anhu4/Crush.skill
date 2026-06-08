@@ -1,7 +1,7 @@
 {
   "name": "crush_skill",
   "display_name": "Crush.skill",
-  "version": "2.4.14",
+  "version": "2.4.15",
   "description": "Relationship Persona Simulation Engine — 5-layer personality, nonlinear state dynamics, LLM-powered dialogue analysis, multi-format chat import, sanitized or private-full WeFlow style memory, and local media-aware companion simulation.",
   "author": "Crush.skill contributors",
   "license": "MIT",

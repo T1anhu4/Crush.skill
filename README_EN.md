@@ -262,6 +262,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 | Version | Focus |
 |---------|-------|
+| `v2.4.15` | Fixed malformed media token detection and added ANSI image/GIF first-frame previews for ordinary terminals. |
 | `v2.4.14` | Added WeFlow private full import, media asset indexing, CLI emoji/image token rendering, and reply-aware coaching. |
 | `v2.4.13` | Fixed WeFlow same-file cross-session import collisions and SQLite lock contention; added `/reset` for clearing the current session. |
 | `v2.4.12` | Added WeFlow JSON import: sanitization, dialogue chunks, target reply examples/clusters, language style card, and local fallback retrieval. |

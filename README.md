@@ -263,6 +263,7 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
 | 版本 | 重点 |
 |------|------|
+| `v2.4.15` | 修复残缺媒体 token 识别，并为普通终端增加 ANSI 图片/GIF 首帧预览 fallback。 |
 | `v2.4.14` | 新增 WeFlow full 私有导入、媒体资产索引、CLI 表情包/图片 token 渲染和 reply-aware 教练判断。 |
 | `v2.4.13` | 修复 WeFlow 同文件跨 session 导入冲突和 SQLite 锁竞争，新增 `/reset` 清空当前 session。 |
 | `v2.4.12` | 新增 WeFlow JSON 导入：自动脱敏、切分 dialogue chunks、构建 target reply examples / clusters、语言风格卡和本地 fallback 检索。 |

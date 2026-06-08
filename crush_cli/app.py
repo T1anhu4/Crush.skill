@@ -1017,6 +1017,8 @@ class CrushCLI:
             key = payload.get("mediaKey") or payload.get("md5") or payload.get("artifactId")
             path = payload.get("localPath") or payload.get("cdnUrl") or ""
             print(f"  {payload.get('kind', 'media'):6} {str(key)[:18]:18} target={counts.get('target', 0):3} me={counts.get('me', 0):3} {path}")
+            if not self.plain:
+                self.render_media_ref(payload, preview_only=True)
 
     def sessions(self) -> None:
         result = self.runtime.run("list_sessions", self.session_id, {})
@@ -1476,16 +1478,25 @@ class CrushCLI:
 
         refs: list[Dict[str, Any]] = []
 
+        def resolve_asset(kind: str, key: str) -> Dict[str, Any]:
+            if key in assets:
+                return assets[key]
+            for asset_key, payload in assets.items():
+                if asset_key.startswith(key) or key.startswith(asset_key):
+                    return payload
+            return {"kind": kind, "mediaKey": key}
+
         def replace(match: re.Match[str]) -> str:
             kind, key = match.group(1), match.group(2)
-            payload = assets.get(key, {"kind": kind, "mediaKey": key})
+            payload = resolve_asset(kind, key)
             refs.append(payload)
             return f"[{kind}:{key[:10]}]"
 
-        cleaned = re.sub(r"\[\[(emoji|image|video|voice):([^\]]+)\]\]", replace, reply)
+        cleaned = re.sub(r"\[\[(emoji|image|video|voice):([A-Za-z0-9_./:-]+)\]\]", replace, reply)
+        cleaned = re.sub(r"\[\[(emoji|image|video|voice):([A-Za-z0-9_./:-]{10,})(?!\]\])", replace, cleaned)
         return cleaned, refs
 
-    def render_media_ref(self, media: Dict[str, Any]) -> None:
+    def render_media_ref(self, media: Dict[str, Any], preview_only: bool = False) -> None:
         path = str(media.get("localPath") or "")
         url = str(media.get("cdnUrl") or "")
         kind = media.get("kind", "media")
@@ -1501,7 +1512,39 @@ class CrushCLI:
                 return
             except Exception:
                 pass
-        print(color(f"[{kind}] {label}: {path or url or 'media asset not found locally'}", C.dim, not self.plain))
+        if path and Path(path).expanduser().exists() and not self.plain:
+            if self.render_ansi_image(Path(path).expanduser()):
+                print(color(f"[{kind}] {path}", C.dim, not self.plain))
+                return
+        if not preview_only:
+            print(color(f"[{kind}] {label}: {path or url or 'media asset not found locally'}", C.dim, not self.plain))
+
+    def render_ansi_image(self, path: Path, width: int = 24) -> bool:
+        try:
+            from PIL import Image, ImageSequence
+
+            with Image.open(path) as img:
+                frame = next(ImageSequence.Iterator(img)).convert("RGB")
+                w, h = frame.size
+                if w <= 0 or h <= 0:
+                    return False
+                target_w = max(8, min(width, w))
+                # Two vertical pixels are packed into one terminal row.
+                target_h = max(2, int((h / w) * target_w * 0.5))
+                frame = frame.resize((target_w, target_h * 2))
+                for y in range(0, frame.height, 2):
+                    row = []
+                    for x in range(frame.width):
+                        upper = frame.getpixel((x, y))
+                        lower = frame.getpixel((x, min(y + 1, frame.height - 1)))
+                        row.append(
+                            f"\033[38;2;{upper[0]};{upper[1]};{upper[2]}m"
+                            f"\033[48;2;{lower[0]};{lower[1]};{lower[2]}m▀"
+                        )
+                    print("".join(row) + C.reset)
+                return True
+        except Exception:
+            return False
 
     def bar(self, value: float, width: int = 24) -> str:
         normalized = max(0.0, min(100.0, value if value >= 0 else value + 100))
