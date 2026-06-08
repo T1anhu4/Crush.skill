@@ -1,8 +1,8 @@
 {
   "name": "crush_skill",
   "display_name": "Crush.skill",
-  "version": "2.4.13",
-  "description": "Relationship Persona Simulation Engine — 5-layer personality, nonlinear state dynamics, LLM-powered dialogue analysis, multi-format chat import, and sanitized WeFlow style memory. Build a fictionalized companion persona from chat style signals without claiming to be a real person.",
+  "version": "2.4.14",
+  "description": "Relationship Persona Simulation Engine — 5-layer personality, nonlinear state dynamics, LLM-powered dialogue analysis, multi-format chat import, sanitized or private-full WeFlow style memory, and local media-aware companion simulation.",
   "author": "Crush.skill contributors",
   "license": "MIT",
   "entry": "execute.py",
@@ -69,6 +69,11 @@
         "type": "string",
         "enum": ["companion", "review"],
         "description": "chat_turn mode. companion prioritizes style samples; review prioritizes evidence and uncertainty."
+      },
+      "privacy_mode": {
+        "type": "string",
+        "enum": ["safe", "full"],
+        "description": "WeFlow import privacy mode. safe sanitizes private data; full keeps local names, places, schools, shared memories, and media paths for explicit private local use."
       }
     },
     "required": ["action"]

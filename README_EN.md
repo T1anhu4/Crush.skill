@@ -74,8 +74,9 @@ Common commands:
 | `/model` | Reconfigure provider, model, base URL, and API key |
 | `/language` | Switch English, 简体中文, 繁體中文, Русский, 日本語 |
 | `/import` | Import chat records and rebuild persona memory |
-| `/import-weflow <file>` | Import a WeFlow WeChat JSON export and build style memory |
+| `/import-weflow [--full] <file>` | Import WeFlow WeChat JSON; `--full` keeps private local names/places/media assets |
 | `/import-status` | Show imported WeFlow memory |
+| `/media` | Show imported emoji, image, and GIF media assets |
 | `/profile` | Show the generated language style card |
 | `/distill` | Generate evidence map, relationship radar, and training playbook |
 | `/dashboard` | Inspect favorability, tension, defense, neediness, initiative |
@@ -115,13 +116,15 @@ Useful commands:
 ```bash
 crush import status --profile default
 crush profile show --profile default
+crush import weflow --full ./weflow.json --profile default
+crush media --profile default
 crush chat "I am exhausted from coding today" --profile default --mode companion
 crush chat "Help me analyze why she suddenly got colder" --profile default --mode review
 crush proactive test --profile default --type daily_checkin
 crush data delete --profile default --import-id <import_id>
 ```
 
-Privacy boundary: Crush.skill only learns sanitized expression habits, interaction rhythm, and chat style. It does not put real names, wxids, avatars, phone numbers, addresses, schools, companies, source XML, or platform message ids into prompts, and it must not claim to be any real person.
+Privacy boundary: default import uses safe mode and only learns sanitized expression habits, interaction rhythm, and chat style. If you explicitly use `/import-weflow --full <file>`, Crush.skill keeps real names, places, schools, shared memories, and local image/emoji paths in local memory for stronger realism. This data stays local and should not be committed as public sample data. In both safe/full modes, the system must not claim to be the real person and should not proactively expose wxids, phone numbers, source XML, or platform message ids.
 
 ---
 
@@ -259,6 +262,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 | Version | Focus |
 |---------|-------|
+| `v2.4.14` | Added WeFlow private full import, media asset indexing, CLI emoji/image token rendering, and reply-aware coaching. |
 | `v2.4.13` | Fixed WeFlow same-file cross-session import collisions and SQLite lock contention; added `/reset` for clearing the current session. |
 | `v2.4.12` | Added WeFlow JSON import: sanitization, dialogue chunks, target reply examples/clusters, language style card, and local fallback retrieval. |
 | `v2.4.9` | README polish: fixed hero animation layering, added why-this-exists, product positioning, Runtime Actions, Star History, and author note. |

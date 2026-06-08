@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.13 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.14 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -263,21 +263,23 @@ class CrushSkillRuntime:
         source = payload.get("source_text") or payload.get("source_file") or payload.get("path") or ""
         if not source:
             raise ValueError("weflow_import requires payload.source_text or payload.source_file")
-        bundle = buildMemoryFromImportedChat(source)
+        privacy_mode = "full" if str(payload.get("privacy_mode") or payload.get("privacy") or "").lower() in {"full", "raw", "private"} or payload.get("full") else "safe"
+        bundle = buildMemoryFromImportedChat(source, privacy_mode=privacy_mode)
         save_result = self.memory.sqlite.save_weflow_bundle(session_id, bundle)
         import_id = save_result.get("import_id", bundle.import_id)
         profile_data = bundle.persona_profile
+        identity_ctx = profile_data.get("identity_context", {})
         expression = profile_data.get("expression", {})
         reply_length = profile_data.get("reply_length", {})
         rhythm = profile_data.get("rhythm", {})
         persona_dict = {
             "identity": {
-                "name": "",
+                "name": identity_ctx.get("display_label", "") if privacy_mode == "full" else "",
                 "gender": payload.get("config", {}).get("gender", "female"),
                 "age": payload.get("config", {}).get("age", 24),
                 "mbti": "UNKNOWN",
                 "life_stage": "unknown",
-                "self_perception": "虚构化微信聊天陪伴角色，语言风格来自脱敏后的历史样本",
+                "self_perception": "本地私有 WeFlow 关系人格模拟，语言、共同经历和媒体习惯来自用户明确导入的聊天记录" if privacy_mode == "full" else "虚构化微信聊天陪伴角色，语言风格来自脱敏后的历史样本",
             },
             "expression": {
                 "signature_phrases": expression.get("signature_phrases", [])[:12],
@@ -310,7 +312,7 @@ class CrushSkillRuntime:
             session_id,
             "weflow_import",
             f"WeFlow JSON 导入 {bundle.stats.get('normalized', 0)} 条消息，构建风格记忆",
-            {"import_id": import_id, "stats": bundle.stats},
+            {"import_id": import_id, "stats": bundle.stats, "privacy_mode": privacy_mode},
         )
         self.memory.sqlite.append_state_snapshot(session_id, state.to_dict(), {}, ["weflow_import"], "WeFlow 风格记忆导入")
         self.memory.sqlite.update_summary(session_id)
@@ -322,10 +324,12 @@ class CrushSkillRuntime:
             "session_id": session_id,
             "already_imported": save_result.get("already_imported", False),
             "import_id": import_id,
+            "privacy_mode": privacy_mode,
             "stats": bundle.stats,
             "save_result": save_result,
             "persona_profile": bundle.persona_profile,
             "persona_profile_md": bundle.persona_profile_md,
+            "media_assets": bundle.media_assets[:24],
             "memory_context_preview": {
                 "target_reply_examples": memory_ctx.get("target_reply_examples", [])[:2],
                 "target_reply_clusters": memory_ctx.get("target_reply_clusters", [])[:2],
@@ -930,11 +934,15 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
         payload["import_id"] = args.import_id
     if args.mode:
         payload["mode"] = args.mode
+    if args.privacy_mode:
+        payload["privacy_mode"] = args.privacy_mode
+    if args.full:
+        payload["privacy_mode"] = "full"
     return payload
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.13")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.14")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")
@@ -946,6 +954,8 @@ def main() -> int:
     parser.add_argument("--npc-reply")
     parser.add_argument("--import-id")
     parser.add_argument("--mode", choices=["companion", "review"], default="")
+    parser.add_argument("--privacy-mode", choices=["safe", "full"], default="")
+    parser.add_argument("--full", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
 

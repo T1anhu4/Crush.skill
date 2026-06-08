@@ -31,8 +31,10 @@ def clean_xml_noise(text: str) -> str:
     return text
 
 
-def sanitize_text(text: str) -> str:
+def sanitize_text(text: str, privacy_mode: str = "safe") -> str:
     text = clean_xml_noise(text)
+    if privacy_mode == "full":
+        return text.strip()
     text = re.sub(r"wxid_[A-Za-z0-9_\\-]+", "[wxid]", text)
     text = re.sub(r"\b1[3-9]\d{9}\b", "[手机号]", text)
     text = re.sub(r"https?://\S+", "[链接]", text)
@@ -41,10 +43,15 @@ def sanitize_text(text: str) -> str:
     return text.strip()
 
 
-def sanitize_session(session: Dict[str, Any]) -> Tuple[Dict[str, Any], int, str]:
+def sanitize_session(session: Dict[str, Any], privacy_mode: str = "safe") -> Tuple[Dict[str, Any], int, str]:
     raw = dict(session or {})
     redacted_count = sum(1 for key in PRIVATE_SESSION_KEYS if raw.get(key))
     session_hash = stable_hash("|".join(str(raw.get(k, "")) for k in ("wxid", "nickname", "remark", "displayName")), "sess_")
+    if privacy_mode == "full":
+        safe = dict(raw)
+        safe["sessionHash"] = session_hash
+        safe["displayLabel"] = raw.get("displayName") or raw.get("remark") or raw.get("nickname") or "target"
+        return safe, 0, session_hash
     safe = {
         "type": raw.get("type", "私聊"),
         "messageCount": raw.get("messageCount", 0),
@@ -87,14 +94,13 @@ def media_placeholder(message_type: str) -> str:
     }.get(message_type, "")
 
 
-def split_quote(content: str, current_speaker: str) -> Tuple[str, str | None, str | None]:
-    text = sanitize_text(content)
+def split_quote(content: str, current_speaker: str, privacy_mode: str = "safe") -> Tuple[str, str | None, str | None]:
+    text = sanitize_text(content, privacy_mode=privacy_mode)
     # WeFlow often serializes quotes as: 回复文本[引用 Nick：quoted text]
     m = re.search(r"\[引用\s*([^：:\]]*)[：:]\s*([\s\S]*?)\]\s*$", text)
     if not m:
         return text, None, None
     reply = text[: m.start()].strip()
-    quoted = sanitize_text(m.group(2).strip())
+    quoted = sanitize_text(m.group(2).strip(), privacy_mode=privacy_mode)
     quoted_speaker = "me" if current_speaker == "target" else "target"
     return reply or "[引用回复]", quoted or None, quoted_speaker
-

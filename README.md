@@ -76,8 +76,9 @@ crush
 | `/model` | 重新配置模型厂商、模型名、Base URL、API Key |
 | `/language` | 切换 English、简体中文、繁體中文、Русский、日本語 |
 | `/import` | 导入聊天记录，重建人格和关系记忆 |
-| `/import-weflow <file>` | 直接导入 WeFlow 导出的微信聊天 JSON，并构建风格记忆 |
+| `/import-weflow [--full] <file>` | 直接导入 WeFlow 微信 JSON；`--full` 会加载本地私有姓名/地点/媒体资产 |
 | `/import-status` | 查看已导入的 WeFlow memory |
+| `/media` | 查看导入的常用表情包、图片、GIF 媒体资产 |
 | `/profile` | 查看自动生成的语言风格卡 |
 | `/distill` | 生成证据地图、关系雷达、训练建议 |
 | `/dashboard` | 查看好感、张力、防御、需求感、主动性等状态 |
@@ -117,13 +118,15 @@ crush import weflow ./weflow.json --profile default
 ```bash
 crush import status --profile default
 crush profile show --profile default
+crush import weflow --full ./weflow.json --profile default
+crush media --profile default
 crush chat "今天写代码好累啊" --profile default --mode companion
 crush chat "帮我分析她为什么突然冷淡" --profile default --mode review
 crush proactive test --profile default --type daily_checkin
 crush data delete --profile default --import-id <import_id>
 ```
 
-隐私边界：Crush.skill 只学习脱敏后的表达习惯、互动节奏和聊天风格；不会把真实姓名、wxid、头像、手机号、地址、学校、公司、source XML、平台消息 id 写入 prompt，也不会声称自己是现实中的任何具体个人。
+隐私边界：默认导入是 safe 模式，只学习脱敏后的表达习惯、互动节奏和聊天风格。若你明确使用 `/import-weflow --full <file>`，Crush.skill 会把真实姓名、地点、学校、共同经历、本地图片/表情包路径写入本地 memory，以获得更强真实感；这些数据仍只保存在本地，不应作为公开示例提交。无论 safe/full，系统都不能声称自己就是现实中的任何具体个人，也不会主动暴露 wxid、手机号、source XML、平台消息 id。
 
 ---
 
@@ -260,6 +263,7 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
 | 版本 | 重点 |
 |------|------|
+| `v2.4.14` | 新增 WeFlow full 私有导入、媒体资产索引、CLI 表情包/图片 token 渲染和 reply-aware 教练判断。 |
 | `v2.4.13` | 修复 WeFlow 同文件跨 session 导入冲突和 SQLite 锁竞争，新增 `/reset` 清空当前 session。 |
 | `v2.4.12` | 新增 WeFlow JSON 导入：自动脱敏、切分 dialogue chunks、构建 target reply examples / clusters、语言风格卡和本地 fallback 检索。 |
 | `v2.4.9` | README 二次打磨：修复首页动画层级，补充为什么做这个、项目定位、Runtime Actions、Star History 和作者寄语。 |

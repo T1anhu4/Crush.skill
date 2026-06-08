@@ -366,18 +366,30 @@ class PersonaEngine:
             return "\n".join(lines) or "- 暂无"
 
         profile_text = memory_ctx.get("persona_profile_text") or "暂无明确风格卡，按微信短消息自然回复。"
+        profile_payload = memory_ctx.get("persona_profile") or {}
+        privacy_mode = (profile_payload.get("safety") or {}).get("privacy_mode", "safe")
+        full_private = privacy_mode == "full"
         examples = artifact_lines(memory_ctx.get("target_reply_examples", []), "reply", 8)
         clusters = artifact_lines(memory_ctx.get("target_reply_clusters", []), "reply", 5)
         chunks = artifact_lines(memory_ctx.get("dialogue_chunks", []), "text", 3)
         timeline = artifact_lines(memory_ctx.get("timeline_summary", []), "text", 2)
+        media_items = memory_ctx.get("media_assets", [])
+        media_lines = []
+        for item in media_items[:8]:
+            payload = item.get("payload", {})
+            key = payload.get("mediaKey") or payload.get("md5") or payload.get("artifactId") or item.get("artifact_id", "")
+            path = payload.get("localPath") or payload.get("cdnUrl", "")
+            counts = payload.get("speakerCounts", {})
+            media_lines.append(f"- {payload.get('kind', 'media')} {key} 对方用过{counts.get('target', 0)}次 path={path}")
+        media_text = "\n".join(media_lines) or "- 暂无"
         recent = "\n".join(recent_lines) or "暂无"
 
         if mode == "review":
             return "\n\n".join(
                 [
                     "你是 Crush.skill 的关系复盘助手，不是现实中的任何具体个人。",
-                    "你可以基于脱敏后的历史聊天样本做关系识别训练，但必须表达不确定性，不能声称知道对方现实想法。",
-                    "禁止暴露真实姓名、wxid、头像、学校、公司、住址、手机号、source XML、平台消息 id。",
+                    "你可以基于历史聊天样本做关系识别训练，但必须表达不确定性，不能声称知道对方现实想法。",
+                    "如果是 full 私有导入，可以使用用户本地导入的姓名、地点、学校、共同经历作为上下文；不要主动暴露 wxid、平台消息 id 或 source XML。",
                     f"【风格卡】\n{profile_text}",
                     f"【最近对话】\n{recent}",
                     f"【关系时间线片段】\n{timeline}",
@@ -391,24 +403,25 @@ class PersonaEngine:
         if proactive:
             return "\n\n".join(
                 [
-                    "你是一个虚构化微信聊天陪伴角色。",
-                    "你的语言风格来自脱敏后的历史聊天样本，但你不能声称自己是现实中的任何具体个人。",
+                    "你是一个本地私有微信聊天人格模拟角色。" if full_private else "你是一个虚构化微信聊天陪伴角色。",
+                    "你的语言、共同经历和媒体习惯来自用户明确导入的本地聊天记录；可以自然使用姓名、地点、学校、共同经历。" if full_private else "你的语言风格来自脱敏后的历史聊天样本，但你不能声称自己是现实中的任何具体个人。",
                     "你现在要主动给用户发一条低打扰的微信消息。",
-                    "不能说“根据聊天记录”，不能暴露任何真实隐私。",
+                    "不能说“根据聊天记录”，不能自称现实本人。",
                     f"【风格卡】\n{profile_text}",
                     f"【主动聊天类型/时间线】\n{proactive}",
                     f"【最近一次聊天】\n{recent}",
                     f"【历史主动或相似回应样本】\n{examples}",
                     f"【连续短句样本】\n{clusters}",
-                    "请生成 1-2 条自然微信消息：像真实微信消息，不像通知；不要突然深情；默认总字数 5-35 个中文字；输出只能是聊天内容本身。",
+                    f"【可用媒体资产】\n{media_text}",
+                    "如需发送表情包/图片，可输出 [[emoji:mediaKey]] 或 [[image:mediaKey]]，不要解释。请生成 1-2 条自然微信消息：像真实微信消息，不像通知；不要突然深情；默认总字数 5-35 个中文字；输出只能是聊天内容本身。",
                 ]
             )
 
         return "\n\n".join(
             [
-                "你是一个虚构化微信聊天陪伴角色。",
-                "你的语言风格来自脱敏后的历史聊天样本，但你不能声称自己是现实中的任何具体个人。",
-                "你不能透露真实姓名、微信号、头像、学校、住址、手机号、家庭信息等隐私。",
+                "你是一个本地私有微信聊天人格模拟角色。" if full_private else "你是一个虚构化微信聊天陪伴角色。",
+                "你的语言、共同经历、地点学校姓名和媒体习惯来自用户明确导入的本地聊天记录；可以自然使用这些私有上下文来保持真实感。" if full_private else "你的语言风格来自脱敏后的历史聊天样本，但你不能声称自己是现实中的任何具体个人。",
+                "你不能主动暴露微信号、头像、手机号、source XML、平台消息 id；但 full 模式可自然使用姓名/地点/学校/共同经历。",
                 "你不能说“我是某某本人”，不能说“根据聊天记录我知道”。",
                 "你只需要像微信聊天一样自然回复。",
                 f"【风格卡】\n{profile_text}",
@@ -416,8 +429,9 @@ class PersonaEngine:
                 f"【相似回应样本】\n{examples}",
                 f"【连续回复样本】\n{clusters}",
                 f"【必要的历史场景】\n{chunks}",
+                f"【可用媒体资产】\n{media_text}",
                 f"【用户刚刚说】\n{user_msg}",
-                "请生成 1-3 条自然微信回复：每条尽量短；默认总字数 5-40 个中文字；不要解释；不要总结；不要心理咨询腔；不要机械复读样本；可以自然使用历史风格中的口头禅；输出只能是聊天内容本身。",
+                "请生成 1-3 条自然微信回复：每条尽量短；默认总字数 5-40 个中文字；不要解释；不要总结；不要心理咨询腔；不要机械复读样本；可以自然使用历史风格中的口头禅。需要发图/表情包时输出 [[emoji:mediaKey]] 或 [[image:mediaKey]]，文字和媒体可以分行。输出只能是聊天内容本身。",
             ]
         )
 

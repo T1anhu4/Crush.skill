@@ -5,6 +5,7 @@ import getpass
 import json
 import os
 import random
+import re
 import shlex
 import sys
 import textwrap
@@ -12,6 +13,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+import base64
 from typing import Any, Dict, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse, urlunparse
@@ -774,6 +776,8 @@ class CrushCLI:
                 self.delete_import(args)
             elif cmd == "/profile":
                 self.profile_show()
+            elif cmd == "/media":
+                self.media_show()
             elif cmd == "/sessions":
                 self.sessions()
             elif cmd == "/use":
@@ -808,6 +812,7 @@ class CrushCLI:
             ("/import-status", "show imported memory status"),
             ("/delete-import <import_id>", "delete one imported WeFlow memory set"),
             ("/profile", "show imported language style card"),
+            ("/media", "show common imported emoji/image assets"),
             ("/sessions", self.t("sessions_cmd")),
             ("/use <session_id>", self.t("use_cmd")),
             ("/dashboard", self.t("dashboard_cmd")),
@@ -938,15 +943,24 @@ class CrushCLI:
 
     def import_weflow(self, args: list[str]) -> None:
         if not args:
-            raise ValueError("Usage: /import-weflow <weflow.json>")
-        path = str(Path(args[0]).expanduser())
+            raise ValueError("Usage: /import-weflow [--full] <weflow.json>")
+        full = False
+        clean_args = []
+        for arg in args:
+            if arg in {"--full", "--raw", "--private"}:
+                full = True
+            else:
+                clean_args.append(arg)
+        if not clean_args:
+            raise ValueError("Usage: /import-weflow [--full] <weflow.json>")
+        path = str(Path(clean_args[0]).expanduser())
         timeline = self.timeline_state()
         was_paused = bool(timeline.get("paused"))
         timeline["paused"] = True
         self.save_timeline_state(timeline)
         try:
             with Spinner("Importing WeFlow JSON and building style memory...", enabled=not self.plain):
-                result = self.runtime.run("weflow_import", self.session_id, {"source_file": path})
+                result = self.runtime.run("weflow_import", self.session_id, {"source_file": path, "privacy_mode": "full" if full else "safe"})
         finally:
             timeline = self.timeline_state()
             timeline["paused"] = was_paused
@@ -957,6 +971,7 @@ class CrushCLI:
         stats = result.get("stats", {})
         print(color("WeFlow import complete." if not result.get("already_imported") else "WeFlow file already imported.", C.green, not self.plain))
         print(f"  import_id: {result.get('import_id')}")
+        print(f"  mode:      {result.get('privacy_mode') or stats.get('privacy_mode', 'safe')}")
         print(f"  raw messages: {stats.get('raw', 0)}")
         print(f"  normalized:   {stats.get('normalized', 0)}")
         print(f"  me / target:  {stats.get('me', 0)} / {stats.get('target', 0)}")
@@ -964,6 +979,7 @@ class CrushCLI:
         print(f"  chunks:       {stats.get('dialogue_chunks', 0)}")
         print(f"  examples:     {stats.get('target_reply_examples', 0)}")
         print(f"  clusters:     {stats.get('target_reply_clusters', 0)}")
+        print(f"  media assets: {stats.get('media_assets', 0)}")
         print(f"  redacted:     {stats.get('redacted', 0)}")
         print(color("  Memory is ready for companion chat and proactive messages.", C.dim, not self.plain))
 
@@ -987,6 +1003,20 @@ class CrushCLI:
         ctx = self.runtime.memory.sqlite.build_memory_context(self.session_id, query="persona profile", limit=2)
         text = ctx.get("persona_profile_text") or "No imported persona profile yet."
         print(text)
+
+    def media_show(self) -> None:
+        ctx = self.runtime.memory.sqlite.build_memory_context(self.session_id, query="emoji media image", limit=2)
+        assets = ctx.get("media_assets", [])
+        if not assets:
+            print(color("No imported media assets yet. Re-import with /import-weflow --full <file>.", C.dim, not self.plain))
+            return
+        print(color("\nMedia Assets", C.bold, not self.plain))
+        for item in assets[:12]:
+            payload = item.get("payload", {})
+            counts = payload.get("speakerCounts", {})
+            key = payload.get("mediaKey") or payload.get("md5") or payload.get("artifactId")
+            path = payload.get("localPath") or payload.get("cdnUrl") or ""
+            print(f"  {payload.get('kind', 'media'):6} {str(key)[:18]:18} target={counts.get('target', 0):3} me={counts.get('me', 0):3} {path}")
 
     def sessions(self) -> None:
         result = self.runtime.run("list_sessions", self.session_id, {})
@@ -1069,6 +1099,7 @@ class CrushCLI:
             note = response_read.get("note", "")
             if note:
                 turn["coach"]["interest_read"] = f"{turn['coach'].get('interest_read', '')}；时间线判断: {note}".strip("；")
+        self.adjust_coach_after_reply(turn, reply)
         self.print_reply(reply, turn)
 
     def start_timeline(self) -> None:
@@ -1387,9 +1418,12 @@ class CrushCLI:
         stamp = datetime.fromtimestamp(float(turn.get("sent_at") or time.time())).strftime("%H:%M")
         header = self.bubble_header("Ta", stamp)
         print(color(header, C.rose, not self.plain))
-        for line in wrap(reply, width=76).splitlines():
+        display_reply, media_refs = self.extract_media_tokens(reply, turn)
+        for line in wrap(display_reply, width=76).splitlines():
             print(color("│ ", C.rose, not self.plain) + line)
         print(color("╰", C.rose, not self.plain))
+        for ref in media_refs:
+            self.render_media_ref(ref)
         vector = turn.get("relationship_vector", "")
         delta = turn.get("delta", {})
         coach = turn.get("coach", {})
@@ -1403,9 +1437,71 @@ class CrushCLI:
             ))
             print(color(f"{self.t('judgment')}: {coach.get('interest_read')}", C.dim, not self.plain))
             print(color(f"{self.t('next_line')}: {coach.get('next_move')}", C.dim, not self.plain))
+            detail = " · ".join(
+                part
+                for part in [
+                    coach.get("user_neediness"),
+                    coach.get("persona_read"),
+                    coach.get("pressure_note"),
+                ]
+                if part
+            )
+            if detail:
+                print(color(f"细节: {detail}", C.dim, not self.plain))
         elif vector:
             short = f"{vector} · favorability {delta.get('favorability', 0):+} · defense {delta.get('defense_level', 0):+}"
             print(color(short, C.dim, not self.plain))
+
+    def adjust_coach_after_reply(self, turn: Dict[str, Any], reply: str) -> None:
+        text = re.sub(r"\s+", "", reply.lower())
+        if not re.search(r"(眯一会|睡会|睡觉|困|累死|休息|先忙|上课|开会|洗澡|晚点|等会)", text):
+            return
+        coach = turn.setdefault("coach", {})
+        coach["line_type"] = "对方低能量/要休息"
+        coach["risk_level"] = "中"
+        coach["should_flirt"] = "先别推进：低打扰收尾"
+        coach["interest_read"] = "她愿意回应，但此刻身体/注意力不在线；把节奏让给她，比继续暧昧更真实。"
+        coach["next_move"] = "短句接住：让她休息，别追问，留一个轻松可回的尾巴。"
+        flags = coach.setdefault("warning_flags", [])
+        if "休息窗口" not in flags:
+            flags.insert(0, "休息窗口")
+
+    def extract_media_tokens(self, reply: str, turn: Dict[str, Any]) -> tuple[str, list[Dict[str, Any]]]:
+        assets = {}
+        for item in (turn.get("memory_context", {}) or {}).get("media_assets", []):
+            payload = item.get("payload", {})
+            for key in [payload.get("mediaKey"), payload.get("md5"), payload.get("artifactId")]:
+                if key:
+                    assets[str(key)] = payload
+
+        refs: list[Dict[str, Any]] = []
+
+        def replace(match: re.Match[str]) -> str:
+            kind, key = match.group(1), match.group(2)
+            payload = assets.get(key, {"kind": kind, "mediaKey": key})
+            refs.append(payload)
+            return f"[{kind}:{key[:10]}]"
+
+        cleaned = re.sub(r"\[\[(emoji|image|video|voice):([^\]]+)\]\]", replace, reply)
+        return cleaned, refs
+
+    def render_media_ref(self, media: Dict[str, Any]) -> None:
+        path = str(media.get("localPath") or "")
+        url = str(media.get("cdnUrl") or "")
+        kind = media.get("kind", "media")
+        label = media.get("mediaKey") or media.get("md5") or media.get("id") or kind
+        inline_supported = os.environ.get("TERM_PROGRAM") in {"iTerm.app", "WezTerm"}
+        if path and Path(path).expanduser().exists() and not self.plain and inline_supported:
+            try:
+                data = Path(path).expanduser().read_bytes()
+                encoded = base64.b64encode(data).decode("ascii")
+                name = base64.b64encode(Path(path).name.encode("utf-8")).decode("ascii")
+                print(f"\033]1337;File=name={name};inline=1;width=auto;height=8;preserveAspectRatio=1:{encoded}\a")
+                print(color(f"[{kind}] {path}", C.dim, not self.plain))
+                return
+            except Exception:
+                pass
+        print(color(f"[{kind}] {label}: {path or url or 'media asset not found locally'}", C.dim, not self.plain))
 
     def bar(self, value: float, width: int = 24) -> str:
         normalized = max(0.0, min(100.0, value if value >= 0 else value + 100))
@@ -1457,12 +1553,16 @@ def run_headless(args: argparse.Namespace) -> int:
     mode = _take_option(tokens, "--mode", "companion")
     proactive_type = _take_option(tokens, "--type", "daily_checkin")
     import_id = _take_option(tokens, "--import-id", "")
+    full = False
+    if "--full" in tokens:
+        tokens.remove("--full")
+        full = True
     args.session = profile
     cli = CrushCLI(args)
     cli.session_id = profile
     cli.ensure_session()
     if tokens[:2] == ["import", "weflow"] and len(tokens) >= 3:
-        result = cli.runtime.run("weflow_import", profile, {"source_file": tokens[2]})
+        result = cli.runtime.run("weflow_import", profile, {"source_file": tokens[2], "privacy_mode": "full" if full else "safe"})
         cli.print_weflow_import_result(result)
         return 0
     if tokens[:2] == ["import", "list"] or tokens[:2] == ["import", "status"]:
@@ -1474,6 +1574,9 @@ def run_headless(args: argparse.Namespace) -> int:
         return 0
     if tokens[:2] == ["profile", "show"]:
         cli.profile_show()
+        return 0
+    if tokens and tokens[0] == "media":
+        cli.media_show()
         return 0
     if tokens[:2] == ["data", "delete"] and import_id:
         cli.delete_import([import_id])

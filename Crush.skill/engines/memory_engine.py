@@ -481,11 +481,18 @@ class MemoryEngine:
             (session_id, data["file_hash"]),
         ).fetchone()
         if existing:
-            return {
-                "already_imported": True,
-                "import_id": existing["import_id"],
-                "stats": json.loads(existing["stats_json"]),
-            }
+            existing_stats = json.loads(existing["stats_json"])
+            existing_privacy = existing_stats.get("privacy_mode", "safe")
+            new_privacy = data.get("stats", {}).get("privacy_mode", "safe")
+            if existing_privacy != new_privacy:
+                self.delete_import(session_id, existing["import_id"])
+                existing = None
+            else:
+                return {
+                    "already_imported": True,
+                    "import_id": existing["import_id"],
+                    "stats": existing_stats,
+                }
         base_import_id = data["import_id"]
         import_id = self._session_import_id(session_id, data["file_hash"], base_import_id)
         now = self._now()
@@ -530,6 +537,7 @@ class MemoryEngine:
         artifact_count += self._save_artifact_many(session_id, import_id, "target_reply_cluster", data.get("target_reply_clusters", []), "embeddingText", 0.95)
         artifact_count += self._save_artifact_many(session_id, import_id, "dialogue_chunk", data.get("dialogue_chunks", []), "text", 0.62)
         artifact_count += self._save_artifact_many(session_id, import_id, "timeline_summary", data.get("timeline_summary", []), "summary", 0.35)
+        artifact_count += self._save_artifact_many(session_id, import_id, "media_asset", data.get("media_assets", []), "text", 0.75)
         profile_text = data.get("persona_profile_md", "")
         if profile_text:
             artifact_count += self._save_artifact_many(
@@ -631,7 +639,37 @@ class MemoryEngine:
             "target_reply_clusters": self.retrieve_artifacts(session_id, query, "target_reply_cluster", limit=5),
             "dialogue_chunks": self.retrieve_artifacts(session_id, query, "dialogue_chunk", limit=4),
             "timeline_summary": self.retrieve_artifacts(session_id, query, "timeline_summary", limit=3),
+            "media_assets": self.get_media_assets(session_id, limit=8),
         }
+
+    def get_media_assets(self, session_id: str, limit: int = 12) -> List[Dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT artifact_type, artifact_id, text, payload_json, created_at
+            FROM memory_artifacts
+            WHERE session_id=? AND artifact_type='media_asset'
+            ORDER BY id DESC
+            LIMIT 800
+            """,
+            (session_id,),
+        ).fetchall()
+        items = []
+        for row in rows:
+            payload = json.loads(row["payload_json"])
+            target_count = int((payload.get("speakerCounts") or {}).get("target", 0))
+            me_count = int((payload.get("speakerCounts") or {}).get("me", 0))
+            items.append(
+                {
+                    "score": target_count,
+                    "artifact_type": row["artifact_type"],
+                    "artifact_id": row["artifact_id"],
+                    "text": row["text"],
+                    "payload": payload,
+                    "created_at": row["created_at"],
+                }
+            )
+        items.sort(key=lambda item: (item["score"], item["payload"].get("speakerCounts", {}).get("me", 0), item["payload"].get("kind", "")), reverse=True)
+        return items[:limit]
 
     def get_import_status(self, session_id: str) -> List[Dict[str, Any]]:
         rows = self.conn.execute(

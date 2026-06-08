@@ -4,7 +4,7 @@ description: Relationship Persona Simulation Engine. Build a fictionalized compa
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.4.13"
+  version: "2.4.14"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
@@ -34,6 +34,7 @@ When the user invokes `/import-chats`:
 When the user invokes WeFlow import:
 
 1. If they provide a WeFlow-exported WeChat JSON file, run `execute.py --action weflow_import --session-id <session> --source-text-file <file>`.
+2. For local CLI users who explicitly ask for maximum realism, use private full import (`/import-weflow --full <file>`). This keeps real names, places, local media paths, and emoji assets in local memory only.
 2. The engine will sanitize private fields, map `isSend: 1` to `me`, map `isSend: 0` to `target`, build `persona_profile`, `target_reply_examples`, `target_reply_clusters`, `dialogue_chunks`, and `timeline_summary`, then store all artifacts in the same SQLite memory used by CLI and skill mode.
 3. Show only import statistics and the session id. Do not show raw wxid, avatar URL, source XML, platform message ids, or real names.
 4. For future `/chat`, use the returned `runtime_prompt` exactly as hidden system prompt. The prompt already prioritizes reply examples/clusters so the companion sounds closer to the sanitized historical style.
@@ -93,6 +94,7 @@ You can also point to a file:
 ### 2.1 Import WeFlow JSON
 ```
 python3 execute.py --action weflow_import --session-id default --source-text-file ./weflow.json --pretty
+python3 execute.py --action weflow_import --session-id default --source-text-file ./weflow.json --privacy-mode full --pretty
 ```
 
 This builds local style memory:
@@ -101,6 +103,7 @@ This builds local style memory:
 - `target_reply_clusters` — consecutive short-message examples for realistic WeChat rhythm
 - `dialogue_chunks` — local fallback retrieval scenes
 - `timeline_summary` — review-mode relationship timeline
+- `media_assets` — local emoji/image/GIF/video metadata for private full imports
 
 Check or delete imports:
 ```
@@ -108,7 +111,7 @@ python3 execute.py --action import_status --session-id default --pretty
 python3 execute.py --action delete_import --session-id default --import-id <import_id>
 ```
 
-Privacy boundary: never claim the NPC is the real person. Say it is a fictionalized WeChat companion role whose language style comes from sanitized samples. Never expose real names, wxids, avatar URLs, phone numbers, addresses, schools, companies, source XML, or platform message ids.
+Privacy boundary: never claim the NPC is the real person. Safe mode uses sanitized samples. Full mode is only for explicit local private imports and may use names, places, schools, shared memories, and media assets from local memory; do not proactively expose wxids, phone numbers, source XML, or platform message ids.
 
 ### 3. Chat With the Persona
 ```

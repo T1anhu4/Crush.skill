@@ -53,6 +53,11 @@ def main() -> int:
         other_again = runtime.run("weflow_import", "weixin", {"source_text": source})
         assert other_again["already_imported"] is True
         assert other_again["import_id"] == other["import_id"]
+        upgrade = runtime.run("weflow_import", "weixin", {"source_text": source, "privacy_mode": "full"})
+        assert upgrade["privacy_mode"] == "full"
+        assert upgrade["already_imported"] is False
+        upgrade_again = runtime.run("weflow_import", "weixin", {"source_text": source, "privacy_mode": "full"})
+        assert upgrade_again["already_imported"] is True
         turn = runtime.run("chat_turn", "default", {"message": "今天写代码好累啊", "mode": "companion"})
         prompt = turn["runtime_prompt"]
         assert "虚构化微信聊天陪伴角色" in prompt

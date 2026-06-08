@@ -18,6 +18,9 @@ class NormalizedMessage:
     raw_type: str = ""
     source_local_id: int | str | None = None
     content_hash: str = ""
+    sender_display_name: str = ""
+    sender_username: str = ""
+    media: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
@@ -28,6 +31,8 @@ class NormalizedMessage:
         data["rawType"] = data.pop("raw_type")
         data["sourceLocalId"] = data.pop("source_local_id")
         data["contentHash"] = data.pop("content_hash")
+        data["senderDisplayName"] = data.pop("sender_display_name")
+        data["senderUsername"] = data.pop("sender_username")
         return data
 
 
@@ -45,6 +50,7 @@ class WeFlowBundle:
     persona_profile: Dict[str, Any] = field(default_factory=dict)
     persona_profile_md: str = ""
     timeline_summary: List[Dict[str, Any]] = field(default_factory=list)
+    media_assets: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -60,5 +66,5 @@ class WeFlowBundle:
             "persona_profile": self.persona_profile,
             "persona_profile_md": self.persona_profile_md,
             "timeline_summary": self.timeline_summary,
+            "media_assets": self.media_assets,
         }
-
