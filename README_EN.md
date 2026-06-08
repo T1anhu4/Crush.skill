@@ -74,10 +74,54 @@ Common commands:
 | `/model` | Reconfigure provider, model, base URL, and API key |
 | `/language` | Switch English, 简体中文, 繁體中文, Русский, 日本語 |
 | `/import` | Import chat records and rebuild persona memory |
+| `/import-weflow <file>` | Import a WeFlow WeChat JSON export and build style memory |
+| `/import-status` | Show imported WeFlow memory |
+| `/profile` | Show the generated language style card |
 | `/distill` | Generate evidence map, relationship radar, and training playbook |
 | `/dashboard` | Inspect favorability, tension, defense, neediness, initiative |
 | `/postmortem` | Review collapses, attraction peaks, and defense triggers |
 | `/stop` / `/continue` | Pause or resume timeline proactive messages |
+
+---
+
+## WeFlow WeChat JSON Import
+
+If you have a WeFlow-exported WeChat JSON file, build style memory with one command:
+
+```bash
+crush import weflow ./weflow.json --profile default
+```
+
+Inside the interactive CLI you can also run:
+
+```text
+/import-weflow ./weflow.json
+```
+
+The import builds:
+
+| Artifact | Purpose |
+|----------|---------|
+| `persona_profile` | Language style card: reply length, multi-message rhythm, catchphrases, laughter frequency, care style |
+| `target_reply_examples` | Highest-priority similar-context reply samples for companion chat |
+| `target_reply_clusters` | Consecutive short-reply samples, allowing 1-3 line WeChat-style output |
+| `dialogue_chunks` | Historical scene chunks for local fallback retrieval |
+| `timeline_summary` | Relationship timeline summaries, mainly used in review mode |
+
+Data is stored locally in `~/.crush/data/relationship_memory.sqlite3`. The generated style card is also written to `~/.crush/data/weflow/<profile>/<import_id>/persona_profile.json|md`.
+
+Useful commands:
+
+```bash
+crush import status --profile default
+crush profile show --profile default
+crush chat "I am exhausted from coding today" --profile default --mode companion
+crush chat "Help me analyze why she suddenly got colder" --profile default --mode review
+crush proactive test --profile default --type daily_checkin
+crush data delete --profile default --import-id <import_id>
+```
+
+Privacy boundary: Crush.skill only learns sanitized expression habits, interaction rhythm, and chat style. It does not put real names, wxids, avatars, phone numbers, addresses, schools, companies, source XML, or platform message ids into prompts, and it must not claim to be any real person.
 
 ---
 
@@ -215,6 +259,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 | Version | Focus |
 |---------|-------|
+| `v2.4.12` | Added WeFlow JSON import: sanitization, dialogue chunks, target reply examples/clusters, language style card, and local fallback retrieval. |
 | `v2.4.9` | README polish: fixed hero animation layering, added why-this-exists, product positioning, Runtime Actions, Star History, and author note. |
 | `v2.4.7` | Added `/distill` and `distillation_report`: evidence map, radar, playbook, validation limits. |
 | `v2.4.6` | Productized README, hero animation, CLI demo animation, bilingual switch. |

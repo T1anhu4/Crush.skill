@@ -15,4 +15,5 @@ __all__ = [
     "replay_engine",
     "state_engine",
     "types",
+    "weflow_import",
 ]

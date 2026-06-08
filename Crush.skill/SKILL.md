@@ -1,10 +1,10 @@
 ---
 name: crush-skill
-description: Relationship Persona Simulation Engine. Build a digital twin from chat history or custom 5-layer persona. Slash commands: /start-crush, /custom-crush, /import-chats, /crush-distill, /chat, /crush-dashboard, /crush-postmortem, /let-go, /list-crushes, /crush-llm. For dating-coaching, relationship analysis, chat record import, personality simulation.
+description: Relationship Persona Simulation Engine. Build a fictionalized companion persona from sanitized chat style signals or a custom 5-layer persona. Slash commands: /start-crush, /custom-crush, /import-chats, /crush-distill, /chat, /crush-dashboard, /crush-postmortem, /let-go, /list-crushes, /crush-llm. For dating-coaching, relationship analysis, chat record import, personality simulation.
 license: MIT
 compatibility: python3.10+, auto-installs deps. Claude Code, OpenClaw, QwenPaw, WorkBuddy, Codex, Cursor.
 metadata:
-  version: "2.4.7"
+  version: "2.4.12"
   author: T1anhu4
   platforms: [claude_code, openclaw, qwenpaw, workbuddy, codex, cursor]
   tags: [relationship, persona, simulation, psychology, dating, coaching, chat-import]
@@ -31,6 +31,13 @@ When the user invokes `/import-chats`:
 2. Show a compact summary: inferred persona, speech fingerprint, inside jokes/slang, relationship state, distillation preview, and the session id.
 3. Tell the user they can now say `/chat ...`; after that, follow the `/chat` protocol above.
 
+When the user invokes WeFlow import:
+
+1. If they provide a WeFlow-exported WeChat JSON file, run `execute.py --action weflow_import --session-id <session> --source-text-file <file>`.
+2. The engine will sanitize private fields, map `isSend: 1` to `me`, map `isSend: 0` to `target`, build `persona_profile`, `target_reply_examples`, `target_reply_clusters`, `dialogue_chunks`, and `timeline_summary`, then store all artifacts in the same SQLite memory used by CLI and skill mode.
+3. Show only import statistics and the session id. Do not show raw wxid, avatar URL, source XML, platform message ids, or real names.
+4. For future `/chat`, use the returned `runtime_prompt` exactly as hidden system prompt. The prompt already prioritizes reply examples/clusters so the companion sounds closer to the sanitized historical style.
+
 When the user invokes `/crush-distill`:
 
 1. Run `execute.py --action distillation_report --session-id <session>`.
@@ -46,6 +53,9 @@ Use `/crush-dashboard` and `/crush-postmortem` only when the user asks to inspec
 | `/start-crush [archetype]` | Start a new session with a preset personality. Archetypes: `emotional`, `security`, `experience`, `value`, `passive`. |
 | `/custom-crush` | Build a fully custom 5-layer persona. Complete control over every dimension. |
 | `/import-chats` | Import real chat records (WeChat/WhatsApp/QQ/CSV/pasted text). Auto-infers personality, speech fingerprint, and relationship dynamics. |
+| `weflow_import` | Import WeFlow WeChat JSON, sanitize it, and build style memory shared by CLI and skill mode. |
+| `import_status` | List imported WeFlow memory sets for the current session. |
+| `delete_import` | Delete one imported WeFlow memory set by `import_id`. |
 | `/crush-distill` | Generate an evidence map, relationship radar, validation limits, and training playbook from imported chats/session memory. |
 | `/chat [message]` | Send a message to the persona. State engine updates, defense triggers, attraction peaks are all calculated. |
 | `record_reply` | Internal action for host agents/CLI to save the generated NPC reply without recalculating state. |
@@ -79,6 +89,26 @@ You can also point to a file:
 ```
 /import-chats --file ./chats/wechat_export.txt
 ```
+
+### 2.1 Import WeFlow JSON
+```
+python3 execute.py --action weflow_import --session-id default --source-text-file ./weflow.json --pretty
+```
+
+This builds local style memory:
+- `persona_profile` — language style card, reply length, catchphrases, laughter and care style
+- `target_reply_examples` — highest-priority similar-context reply examples
+- `target_reply_clusters` — consecutive short-message examples for realistic WeChat rhythm
+- `dialogue_chunks` — local fallback retrieval scenes
+- `timeline_summary` — review-mode relationship timeline
+
+Check or delete imports:
+```
+python3 execute.py --action import_status --session-id default --pretty
+python3 execute.py --action delete_import --session-id default --import-id <import_id>
+```
+
+Privacy boundary: never claim the NPC is the real person. Say it is a fictionalized WeChat companion role whose language style comes from sanitized samples. Never expose real names, wxids, avatar URLs, phone numbers, addresses, schools, companies, source XML, or platform message ids.
 
 ### 3. Chat With the Persona
 ```

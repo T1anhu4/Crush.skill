@@ -86,6 +86,43 @@ class MemoryEngine:
                 summary TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS import_records (
+                import_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                file_hash TEXT NOT NULL,
+                session_hash TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                stats_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(session_id, file_hash)
+            );
+
+            CREATE TABLE IF NOT EXISTS import_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                import_id TEXT NOT NULL,
+                message_hash TEXT NOT NULL,
+                speaker TEXT NOT NULL,
+                content TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(session_id, message_hash)
+            );
+
+            CREATE TABLE IF NOT EXISTS memory_artifacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                import_id TEXT NOT NULL,
+                artifact_type TEXT NOT NULL,
+                artifact_id TEXT NOT NULL,
+                text TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                weight REAL NOT NULL,
+                vector_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(session_id, import_id, artifact_type, artifact_id)
+            );
             """
         )
         self._ensure_column("sessions", "persona_json", "TEXT")
@@ -421,11 +458,174 @@ class MemoryEngine:
 
         related = self.retrieve_relevant(session_id, query=query, limit=limit)
         snippets = [f"[{item['role']}] {item['content']}" for item in related]
+        weflow = self.build_weflow_context(session_id, query=query)
         return {
             "summary": summary,
             "snippets": snippets,
             "items": related,
+            **weflow,
         }
+
+    def save_weflow_bundle(self, session_id: str, bundle: Any) -> Dict[str, Any]:
+        data = bundle.to_dict() if hasattr(bundle, "to_dict") else dict(bundle)
+        existing = self.conn.execute(
+            "SELECT import_id, stats_json FROM import_records WHERE session_id=? AND file_hash=?",
+            (session_id, data["file_hash"]),
+        ).fetchone()
+        if existing:
+            return {
+                "already_imported": True,
+                "import_id": existing["import_id"],
+                "stats": json.loads(existing["stats_json"]),
+            }
+        now = self._now()
+        self.conn.execute(
+            """
+            INSERT INTO import_records(import_id, session_id, file_hash, session_hash, source_type, stats_json, created_at)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data["import_id"],
+                session_id,
+                data["file_hash"],
+                data["session_hash"],
+                "weflow",
+                json.dumps(data["stats"], ensure_ascii=False),
+                now,
+            ),
+        )
+        inserted_messages = 0
+        for msg in data.get("messages", []):
+            try:
+                cursor = self.conn.execute(
+                    """
+                    INSERT OR IGNORE INTO import_messages(session_id, import_id, message_hash, speaker, content, payload_json, created_at)
+                    VALUES(?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        session_id,
+                        data["import_id"],
+                        msg["contentHash"],
+                        msg["speaker"],
+                        msg["content"],
+                        json.dumps(msg, ensure_ascii=False),
+                        now,
+                    ),
+                )
+                inserted_messages += max(0, cursor.rowcount)
+            except Exception:
+                continue
+        artifact_count = 0
+        artifact_count += self._save_artifact_many(session_id, data["import_id"], "target_reply_example", data.get("target_reply_examples", []), "embeddingText", 1.0)
+        artifact_count += self._save_artifact_many(session_id, data["import_id"], "target_reply_cluster", data.get("target_reply_clusters", []), "embeddingText", 0.95)
+        artifact_count += self._save_artifact_many(session_id, data["import_id"], "dialogue_chunk", data.get("dialogue_chunks", []), "text", 0.62)
+        artifact_count += self._save_artifact_many(session_id, data["import_id"], "timeline_summary", data.get("timeline_summary", []), "summary", 0.35)
+        profile_text = data.get("persona_profile_md", "")
+        if profile_text:
+            artifact_count += self._save_artifact_many(
+                session_id,
+                data["import_id"],
+                "persona_profile",
+                [{"artifactId": "persona_profile", "text": profile_text, **data.get("persona_profile", {})}],
+                "text",
+                0.8,
+            )
+        self.conn.commit()
+        return {
+            "already_imported": False,
+            "import_id": data["import_id"],
+            "stats": data["stats"],
+            "inserted_messages": inserted_messages,
+            "artifact_count": artifact_count,
+        }
+
+    def _save_artifact_many(self, session_id: str, import_id: str, artifact_type: str, items: List[Dict[str, Any]], text_key: str, weight: float) -> int:
+        count = 0
+        for idx, item in enumerate(items, start=1):
+            artifact_id = str(item.get("exampleId") or item.get("clusterId") or item.get("chunkId") or item.get("artifactId") or f"{artifact_type}_{idx}")
+            text = str(item.get(text_key) or item.get("text") or item.get("summary") or "")
+            if not text:
+                continue
+            item_weight = float(item.get("weight", weight))
+            self.conn.execute(
+                """
+                INSERT OR REPLACE INTO memory_artifacts(session_id, import_id, artifact_type, artifact_id, text, payload_json, weight, vector_json, created_at)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    import_id,
+                    artifact_type,
+                    artifact_id,
+                    text,
+                    json.dumps(item, ensure_ascii=False),
+                    item_weight,
+                    json.dumps(self._text_to_vector(text), ensure_ascii=False),
+                    self._now(),
+                ),
+            )
+            count += 1
+        return count
+
+    def retrieve_artifacts(self, session_id: str, query: str, artifact_type: str, limit: int = 5) -> List[Dict[str, Any]]:
+        query_vec = self._text_to_vector(query)
+        query_tokens = set(self._tokenize(query))
+        rows = self.conn.execute(
+            """
+            SELECT artifact_type, artifact_id, text, payload_json, weight, vector_json, created_at
+            FROM memory_artifacts
+            WHERE session_id=? AND artifact_type=?
+            ORDER BY id DESC
+            LIMIT 400
+            """,
+            (session_id, artifact_type),
+        ).fetchall()
+        scored = []
+        for row in rows:
+            vector = json.loads(row["vector_json"])
+            cosine = self._cosine(query_vec, vector)
+            tokens = set(self._tokenize(row["text"]))
+            overlap = len(tokens & query_tokens) / max(1, len(query_tokens))
+            score = (cosine * 0.58 + overlap * 0.42) * float(row["weight"])
+            scored.append((score, row))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [
+            {
+                "score": round(score, 4),
+                "artifact_type": row["artifact_type"],
+                "artifact_id": row["artifact_id"],
+                "text": row["text"],
+                "payload": json.loads(row["payload_json"]),
+                "created_at": row["created_at"],
+            }
+            for score, row in scored[:limit]
+        ]
+
+    def build_weflow_context(self, session_id: str, query: str) -> Dict[str, Any]:
+        profile = self.retrieve_artifacts(session_id, query or "persona profile", "persona_profile", limit=1)
+        return {
+            "persona_profile": profile[0]["payload"] if profile else {},
+            "persona_profile_text": profile[0]["text"] if profile else "",
+            "target_reply_examples": self.retrieve_artifacts(session_id, query, "target_reply_example", limit=8),
+            "target_reply_clusters": self.retrieve_artifacts(session_id, query, "target_reply_cluster", limit=5),
+            "dialogue_chunks": self.retrieve_artifacts(session_id, query, "dialogue_chunk", limit=4),
+            "timeline_summary": self.retrieve_artifacts(session_id, query, "timeline_summary", limit=3),
+        }
+
+    def get_import_status(self, session_id: str) -> List[Dict[str, Any]]:
+        rows = self.conn.execute(
+            "SELECT import_id, source_type, stats_json, created_at FROM import_records WHERE session_id=? ORDER BY created_at DESC",
+            (session_id,),
+        ).fetchall()
+        return [
+            {"import_id": row["import_id"], "source_type": row["source_type"], "stats": json.loads(row["stats_json"]), "created_at": row["created_at"]}
+            for row in rows
+        ]
+
+    def delete_import(self, session_id: str, import_id: str) -> None:
+        for table in ["memory_artifacts", "import_messages", "import_records"]:
+            self.conn.execute(f"DELETE FROM {table} WHERE session_id=? AND import_id=?", (session_id, import_id))
+        self.conn.commit()
 
     def _tokenize(self, text: str) -> List[str]:
         return re.findall(r"[\w\u4e00-\u9fff]+", text.lower())
@@ -449,7 +649,7 @@ class MemoryEngine:
                  "created_at": r["created_at"], "updated_at": r["updated_at"]} for r in rows]
 
     def _delete_session(self, session_id: str) -> None:
-        for table in ["episodes", "timeline_events", "state_history", "summaries", "sessions"]:
+        for table in ["episodes", "timeline_events", "state_history", "summaries", "memory_artifacts", "import_messages", "import_records", "sessions"]:
             self.conn.execute(f"DELETE FROM {table} WHERE session_id=?", (session_id,))
         self.conn.commit()
 

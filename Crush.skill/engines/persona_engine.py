@@ -217,6 +217,9 @@ class PersonaEngine:
 
     def build_runtime_prompt(self, persona: Persona, state: Dict[str, Any], memory_ctx: Dict[str, Any], user_msg: str = "") -> str:
         """Generate the LLM prompt that makes the NPC feel real."""
+        if memory_ctx.get("target_reply_examples") or memory_ctx.get("persona_profile_text"):
+            return self._build_weflow_runtime_prompt(persona, state, memory_ctx, user_msg)
+
         hr = persona.hard_rules
         idn = persona.identity
         expr = persona.expression
@@ -341,6 +344,82 @@ class PersonaEngine:
             parts.insert(0, f"对方刚说: 「{user_msg}」")
 
         return "\n\n".join(parts)
+
+    def _build_weflow_runtime_prompt(self, persona: Persona, state: Dict[str, Any], memory_ctx: Dict[str, Any], user_msg: str = "") -> str:
+        mode = memory_ctx.get("mode", "companion")
+        recent_turns = memory_ctx.get("recent_turns", [])
+        recent_lines = []
+        for turn in recent_turns[-8:]:
+            role = "用户" if turn.get("role") == "user" else "你"
+            recent_lines.append(f"{role}：{turn.get('content', '')}")
+
+        def artifact_lines(items: list[dict], field: str = "text", limit: int = 5) -> str:
+            lines = []
+            for item in items[:limit]:
+                payload = item.get("payload", {})
+                if field == "reply":
+                    context = payload.get("contextText", "")
+                    reply = payload.get("targetReply") or payload.get("combinedReply") or item.get("text", "")
+                    lines.append(f"- 上下文：{context}\n  对方风格回应：{reply}")
+                else:
+                    lines.append(f"- {item.get('text', '')[:420]}")
+            return "\n".join(lines) or "- 暂无"
+
+        profile_text = memory_ctx.get("persona_profile_text") or "暂无明确风格卡，按微信短消息自然回复。"
+        examples = artifact_lines(memory_ctx.get("target_reply_examples", []), "reply", 8)
+        clusters = artifact_lines(memory_ctx.get("target_reply_clusters", []), "reply", 5)
+        chunks = artifact_lines(memory_ctx.get("dialogue_chunks", []), "text", 3)
+        timeline = artifact_lines(memory_ctx.get("timeline_summary", []), "text", 2)
+        recent = "\n".join(recent_lines) or "暂无"
+
+        if mode == "review":
+            return "\n\n".join(
+                [
+                    "你是 Crush.skill 的关系复盘助手，不是现实中的任何具体个人。",
+                    "你可以基于脱敏后的历史聊天样本做关系识别训练，但必须表达不确定性，不能声称知道对方现实想法。",
+                    "禁止暴露真实姓名、wxid、头像、学校、公司、住址、手机号、source XML、平台消息 id。",
+                    f"【风格卡】\n{profile_text}",
+                    f"【最近对话】\n{recent}",
+                    f"【关系时间线片段】\n{timeline}",
+                    f"【必要历史场景】\n{chunks}",
+                    f"【用户问题】\n{user_msg}",
+                    "请用复盘模式回答：先说明只能基于聊天样本推测，再给证据、风险、下一步建议。不要编造事实。",
+                ]
+            )
+
+        proactive = memory_ctx.get("timeline")
+        if proactive:
+            return "\n\n".join(
+                [
+                    "你是一个虚构化微信聊天陪伴角色。",
+                    "你的语言风格来自脱敏后的历史聊天样本，但你不能声称自己是现实中的任何具体个人。",
+                    "你现在要主动给用户发一条低打扰的微信消息。",
+                    "不能说“根据聊天记录”，不能暴露任何真实隐私。",
+                    f"【风格卡】\n{profile_text}",
+                    f"【主动聊天类型/时间线】\n{proactive}",
+                    f"【最近一次聊天】\n{recent}",
+                    f"【历史主动或相似回应样本】\n{examples}",
+                    f"【连续短句样本】\n{clusters}",
+                    "请生成 1-2 条自然微信消息：像真实微信消息，不像通知；不要突然深情；默认总字数 5-35 个中文字；输出只能是聊天内容本身。",
+                ]
+            )
+
+        return "\n\n".join(
+            [
+                "你是一个虚构化微信聊天陪伴角色。",
+                "你的语言风格来自脱敏后的历史聊天样本，但你不能声称自己是现实中的任何具体个人。",
+                "你不能透露真实姓名、微信号、头像、学校、住址、手机号、家庭信息等隐私。",
+                "你不能说“我是某某本人”，不能说“根据聊天记录我知道”。",
+                "你只需要像微信聊天一样自然回复。",
+                f"【风格卡】\n{profile_text}",
+                f"【最近对话】\n{recent}",
+                f"【相似回应样本】\n{examples}",
+                f"【连续回复样本】\n{clusters}",
+                f"【必要的历史场景】\n{chunks}",
+                f"【用户刚刚说】\n{user_msg}",
+                "请生成 1-3 条自然微信回复：每条尽量短；默认总字数 5-40 个中文字；不要解释；不要总结；不要心理咨询腔；不要机械复读样本；可以自然使用历史风格中的口头禅；输出只能是聊天内容本身。",
+            ]
+        )
 
     def _merge(self, base: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
         result = {**base}

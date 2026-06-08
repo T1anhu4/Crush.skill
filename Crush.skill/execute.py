@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crush.skill v2.4.7 — Relationship Persona Simulation Engine.
+Crush.skill v2.4.12 — Relationship Persona Simulation Engine.
 
 Slash commands (use directly in Claude Code / OpenClaw / QwenPaw):
   /start-crush [archetype]  — Quick start with a preset personality
@@ -81,6 +81,7 @@ from engines.reality_import_engine import RealityImportEngine
 from engines.replay_engine import ReplayEngine
 from engines.state_engine import StateEngine
 from engines.types import CoreState, RelationshipProfile
+from engines.weflow_import import buildMemoryFromImportedChat, detectWeFlowFormat
 
 
 class CrushSkillRuntime:
@@ -101,6 +102,9 @@ class CrushSkillRuntime:
             "custom_sandbox": self.custom_sandbox,
             "reality_import": self.reality_import_mode,
             "chat_import": self.chat_import_mode,
+            "weflow_import": self.weflow_import_mode,
+            "import_status": self.import_status,
+            "delete_import": self.delete_import,
             "distillation_report": self.distillation_report,
             "chat_turn": self.chat_turn,
             "record_reply": self.record_reply,
@@ -174,6 +178,8 @@ class CrushSkillRuntime:
         source_text = payload.get("source_text", "")
         if not source_text.strip():
             raise ValueError("请提供聊天记录内容 (source_text)。你可以直接粘贴聊天记录，或指定文件路径 (source_text_file)。")
+        if detectWeFlowFormat(source_text):
+            return self.weflow_import_mode(session_id, {"source_text": source_text, **payload})
         messages = self.chat_importer.detect_and_parse(source_text)
         analysis = self.chat_importer.analyze(messages)
         distillation = self.distiller.build_from_messages(messages, analysis)
@@ -252,6 +258,97 @@ class CrushSkillRuntime:
                 "dashboard": self._dashboard(state.to_dict(), {}),
                 "runtime_prompt": self.persona.build_runtime_prompt(persona_obj, state.to_dict(), {}, ""),
                 "memory_backend": self.memory.status.to_dict()}
+
+    def weflow_import_mode(self, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        source = payload.get("source_text") or payload.get("source_file") or payload.get("path") or ""
+        if not source:
+            raise ValueError("weflow_import requires payload.source_text or payload.source_file")
+        bundle = buildMemoryFromImportedChat(source)
+        save_result = self.memory.sqlite.save_weflow_bundle(session_id, bundle)
+        profile_data = bundle.persona_profile
+        expression = profile_data.get("expression", {})
+        reply_length = profile_data.get("reply_length", {})
+        rhythm = profile_data.get("rhythm", {})
+        persona_dict = {
+            "identity": {
+                "name": "",
+                "gender": payload.get("config", {}).get("gender", "female"),
+                "age": payload.get("config", {}).get("age", 24),
+                "mbti": "UNKNOWN",
+                "life_stage": "unknown",
+                "self_perception": "虚构化微信聊天陪伴角色，语言风格来自脱敏后的历史样本",
+            },
+            "expression": {
+                "signature_phrases": expression.get("signature_phrases", [])[:12],
+                "filler_words": expression.get("particles", [])[:8],
+                "emoji_style": "moderate" if expression.get("emoji") else "minimal",
+                "emoji_favorites": expression.get("emoji", [])[:8],
+                "sentence_structure": "fragmented" if reply_length.get("average_chars", 20) <= 12 else "casual",
+                "humor_style": "goofy" if expression.get("laughs") else "dry",
+                "avg_message_length_words": max(4, int(reply_length.get("average_chars", 18) or 18)),
+            },
+            "emotional": {"attachment_style": "Secure", "love_language": "quality_time", "emotional_expression": "moderate"},
+            "relational": {"relationship_stage": "talking", "power_dynamic": "balanced"},
+            "hard_rules": {
+                "max_message_length": max(20, min(80, int((reply_length.get("average_chars", 24) or 24) * 2.2))),
+                "tone_never": ["AI腔", "心理咨询腔", "自称现实本人"],
+            },
+        }
+        persona_obj = self.persona.from_custom(persona_dict)
+        state = CoreState(favorability=35.0, tension=22.0, exploration=35.0, defense_level=18.0).normalize()
+        profile = RelationshipProfile(
+            archetype="weflow_style",
+            attachment_style="Secure",
+            mbti="UNKNOWN",
+            gender=persona_obj.identity.gender,
+            age=persona_obj.identity.age,
+            relationship_stage="talking",
+        )
+        self.memory.sqlite.upsert_session(session_id, profile.to_dict(), state.to_dict(), "weflow_style", persona_obj.to_dict())
+        self.memory.sqlite.append_timeline_event(
+            session_id,
+            "weflow_import",
+            f"WeFlow JSON 导入 {bundle.stats.get('normalized', 0)} 条消息，构建风格记忆",
+            {"import_id": bundle.import_id, "stats": bundle.stats},
+        )
+        self.memory.sqlite.append_state_snapshot(session_id, state.to_dict(), {}, ["weflow_import"], "WeFlow 风格记忆导入")
+        self.memory.sqlite.update_summary(session_id)
+        self._write_weflow_profile_files(session_id, bundle)
+        memory_ctx = self.memory.sqlite.build_memory_context(session_id, query="日常微信聊天 风格样本", limit=4)
+        return {
+            "success": True,
+            "action": "weflow_import",
+            "session_id": session_id,
+            "already_imported": save_result.get("already_imported", False),
+            "import_id": bundle.import_id,
+            "stats": bundle.stats,
+            "save_result": save_result,
+            "persona_profile": bundle.persona_profile,
+            "persona_profile_md": bundle.persona_profile_md,
+            "memory_context_preview": {
+                "target_reply_examples": memory_ctx.get("target_reply_examples", [])[:2],
+                "target_reply_clusters": memory_ctx.get("target_reply_clusters", [])[:2],
+            },
+            "runtime_prompt": self.persona.build_runtime_prompt(persona_obj, state.to_dict(), memory_ctx, ""),
+            "memory_backend": self.memory.status.to_dict(),
+        }
+
+    def import_status(self, session_id: str, payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        return {"success": True, "action": "import_status", "session_id": session_id, "imports": self.memory.sqlite.get_import_status(session_id)}
+
+    def delete_import(self, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        import_id = payload.get("import_id", "")
+        if not import_id:
+            raise ValueError("delete_import requires payload.import_id")
+        self.memory.sqlite.delete_import(session_id, import_id)
+        self.memory.sqlite.update_summary(session_id)
+        return {"success": True, "action": "delete_import", "session_id": session_id, "import_id": import_id, "deleted": True}
+
+    def _write_weflow_profile_files(self, session_id: str, bundle: Any) -> None:
+        out_dir = DATA_DIR / "weflow" / session_id / bundle.import_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "persona_profile.json").write_text(json.dumps(bundle.persona_profile, ensure_ascii=False, indent=2), encoding="utf-8")
+        (out_dir / "persona_profile.md").write_text(bundle.persona_profile_md, encoding="utf-8")
 
     def distillation_report(self, session_id: str, payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
         payload = payload or {}
@@ -353,12 +450,14 @@ class CrushSkillRuntime:
             self.memory.sqlite.append_timeline_event(session_id, tag, f"触发: {tag}",
                 {"delta": calculated["delta"], "analysis": calculated["analysis"]})
         self.memory.sqlite.update_summary(session_id)
-        memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=message, limit=6)
         recent_turns = list(reversed(self.memory.sqlite.get_recent_episodes(session_id, limit=8)))
+        retrieval_query = "\n".join([item.get("content", "") for item in recent_turns[-6:]] + [message])
+        memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=retrieval_query, limit=6)
         memory_ctx["recent_turns"] = [
             {"role": item.get("role", ""), "content": item.get("content", "")[:240]}
             for item in recent_turns
         ]
+        memory_ctx["mode"] = payload.get("mode") or self._infer_chat_mode(message)
         memory_ctx["pragmatics"] = {
             "surface_intent": analysis.surface_intent,
             "subtext": analysis.subtext,
@@ -417,8 +516,15 @@ class CrushSkillRuntime:
         state = CoreState.from_dict(session["state"])
         persona_obj = self._load_persona_for_session(session)
         event = payload.get("event", "时间自然流逝，她可以根据关系状态决定是否主动发一条消息。")
-        memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=event, limit=6)
+        recent_turns = list(reversed(self.memory.sqlite.get_recent_episodes(session_id, limit=8)))
+        retrieval_query = "\n".join([item.get("content", "") for item in recent_turns[-6:]] + [event, str(payload.get("pending", ""))])
+        memory_ctx = self.memory.sqlite.build_memory_context(session_id, query=retrieval_query, limit=6)
+        memory_ctx["recent_turns"] = [
+            {"role": item.get("role", ""), "content": item.get("content", "")[:240]}
+            for item in recent_turns
+        ]
         memory_ctx["timeline"] = payload
+        memory_ctx["mode"] = "companion"
         runtime_prompt = self.persona.build_runtime_prompt(persona_obj, state.to_dict(), memory_ctx, "")
         runtime_prompt += (
             f"\n\n时间线背景: {event}\n\n"
@@ -536,6 +642,12 @@ class CrushSkillRuntime:
         if os.environ.get("WORKBUDDY_HOME"):
             return "workbuddy"
         return "generic"
+
+    def _infer_chat_mode(self, message: str) -> str:
+        text = re.sub(r"\s+", "", message.lower())
+        if re.search(r"(帮我分析|分析一下|复盘|关系复盘|为什么.*(冷淡|这样|不回|生气)|什么时候开始|冷淡|她是不是|他是不是|喜欢我吗|有好感吗|养鱼|慢热|拜金|人格|性格)", text):
+            return "review"
+        return "companion"
 
     # ── Helpers ──────────────────────────────────────────────────
     def _initial_state_from_preset(self, archetype: str, config: Dict[str, Any]) -> CoreState:
@@ -808,15 +920,20 @@ def _load_payload(args: argparse.Namespace) -> Dict[str, Any]:
         payload["source_text"] = args.source_text
     if args.source_text_file:
         payload["source_text"] = Path(args.source_text_file).read_text(encoding="utf-8")
+        payload["source_file"] = args.source_text_file
     if args.message:
         payload["message"] = args.message
     if args.npc_reply:
         payload["npc_reply"] = args.npc_reply
+    if args.import_id:
+        payload["import_id"] = args.import_id
+    if args.mode:
+        payload["mode"] = args.mode
     return payload
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.0")
+    parser = argparse.ArgumentParser(description="Crush.skill — Relationship Persona Simulation Engine v2.4.12")
     parser.add_argument("--action", required=True)
     parser.add_argument("--session-id", default="default")
     parser.add_argument("--payload-json")
@@ -826,6 +943,8 @@ def main() -> int:
     parser.add_argument("--source-text-file")
     parser.add_argument("--message")
     parser.add_argument("--npc-reply")
+    parser.add_argument("--import-id")
+    parser.add_argument("--mode", choices=["companion", "review"], default="")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
 

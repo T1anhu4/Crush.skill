@@ -76,10 +76,54 @@ crush
 | `/model` | 重新配置模型厂商、模型名、Base URL、API Key |
 | `/language` | 切换 English、简体中文、繁體中文、Русский、日本語 |
 | `/import` | 导入聊天记录，重建人格和关系记忆 |
+| `/import-weflow <file>` | 直接导入 WeFlow 导出的微信聊天 JSON，并构建风格记忆 |
+| `/import-status` | 查看已导入的 WeFlow memory |
+| `/profile` | 查看自动生成的语言风格卡 |
 | `/distill` | 生成证据地图、关系雷达、训练建议 |
 | `/dashboard` | 查看好感、张力、防御、需求感、主动性等状态 |
 | `/postmortem` | 复盘关系崩点、吸引力峰值、防御触发 |
 | `/stop` / `/continue` | 暂停或继续时间线主动消息 |
+
+---
+
+## WeFlow 微信 JSON 导入
+
+如果你有 [WeFlow](https://github.com/LC044/WeFlow) 导出的微信聊天 JSON，可以一条命令构建风格记忆：
+
+```bash
+crush import weflow ./weflow.json --profile default
+```
+
+也可以在交互式 CLI 中使用：
+
+```text
+/import-weflow ./weflow.json
+```
+
+导入后系统会自动完成：
+
+| 产物 | 用途 |
+|------|------|
+| `persona_profile` | 语言风格卡：回复长度、连续短句、口头禅、哈哈哈频率、关心方式 |
+| `target_reply_examples` | 最重要的相似上下文回复样本，让 companion 聊起来更像历史对象 |
+| `target_reply_clusters` | 连续短句样本，允许模型输出 1-3 行微信短消息 |
+| `dialogue_chunks` | 历史场景切片，用于必要的上下文检索 |
+| `timeline_summary` | 关系时间线摘要，主要用于 review 复盘模式 |
+
+数据默认保存在本地 `~/.crush/data/relationship_memory.sqlite3`，语言风格卡也会写入 `~/.crush/data/weflow/<profile>/<import_id>/persona_profile.json|md`。
+
+常用命令：
+
+```bash
+crush import status --profile default
+crush profile show --profile default
+crush chat "今天写代码好累啊" --profile default --mode companion
+crush chat "帮我分析她为什么突然冷淡" --profile default --mode review
+crush proactive test --profile default --type daily_checkin
+crush data delete --profile default --import-id <import_id>
+```
+
+隐私边界：Crush.skill 只学习脱敏后的表达习惯、互动节奏和聊天风格；不会把真实姓名、wxid、头像、手机号、地址、学校、公司、source XML、平台消息 id 写入 prompt，也不会声称自己是现实中的任何具体个人。
 
 ---
 
@@ -216,6 +260,7 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
 | 版本 | 重点 |
 |------|------|
+| `v2.4.12` | 新增 WeFlow JSON 导入：自动脱敏、切分 dialogue chunks、构建 target reply examples / clusters、语言风格卡和本地 fallback 检索。 |
 | `v2.4.9` | README 二次打磨：修复首页动画层级，补充为什么做这个、项目定位、Runtime Actions、Star History 和作者寄语。 |
 | `v2.4.7` | 新增 `/distill` 和 `distillation_report`：证据地图、关系雷达、训练建议、验证限制。 |
 | `v2.4.6` | README 产品化、首页动画、CLI demo 动画、中英文切换。 |

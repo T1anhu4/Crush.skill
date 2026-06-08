@@ -764,6 +764,14 @@ class CrushCLI:
                 self.start(args)
             elif cmd == "/import":
                 self.import_chats(args)
+            elif cmd == "/import-weflow":
+                self.import_weflow(args)
+            elif cmd == "/import-status":
+                self.import_status()
+            elif cmd == "/delete-import":
+                self.delete_import(args)
+            elif cmd == "/profile":
+                self.profile_show()
             elif cmd == "/sessions":
                 self.sessions()
             elif cmd == "/use":
@@ -793,6 +801,10 @@ class CrushCLI:
             ("/setup", self.t("setup")),
             ("/start [archetype] [name]", self.t("start_cmd")),
             ("/import [file]", self.t("import_cmd")),
+            ("/import-weflow <file>", "import WeFlow JSON and build style memory"),
+            ("/import-status", "show imported memory status"),
+            ("/delete-import <import_id>", "delete one imported WeFlow memory set"),
+            ("/profile", "show imported language style card"),
             ("/sessions", self.t("sessions_cmd")),
             ("/use <session_id>", self.t("use_cmd")),
             ("/dashboard", self.t("dashboard_cmd")),
@@ -912,6 +924,49 @@ class CrushCLI:
             print(f"  friend/flirt: {radar.get('friend_or_flirt', 'unknown')}")
             print(f"  boundary: {radar.get('warm_guarded', 'unknown')}")
             print(color("  Run /distill for the full evidence map and training playbook.", C.dim, not self.plain))
+
+    def import_weflow(self, args: list[str]) -> None:
+        if not args:
+            raise ValueError("Usage: /import-weflow <weflow.json>")
+        path = str(Path(args[0]).expanduser())
+        with Spinner("Importing WeFlow JSON and building style memory...", enabled=not self.plain):
+            result = self.runtime.run("weflow_import", self.session_id, {"source_file": path})
+        self.print_weflow_import_result(result)
+
+    def print_weflow_import_result(self, result: Dict[str, Any]) -> None:
+        stats = result.get("stats", {})
+        print(color("WeFlow import complete." if not result.get("already_imported") else "WeFlow file already imported.", C.green, not self.plain))
+        print(f"  import_id: {result.get('import_id')}")
+        print(f"  raw messages: {stats.get('raw', 0)}")
+        print(f"  normalized:   {stats.get('normalized', 0)}")
+        print(f"  me / target:  {stats.get('me', 0)} / {stats.get('target', 0)}")
+        print(f"  date range:   {' → '.join(stats.get('date_range', []))}")
+        print(f"  chunks:       {stats.get('dialogue_chunks', 0)}")
+        print(f"  examples:     {stats.get('target_reply_examples', 0)}")
+        print(f"  clusters:     {stats.get('target_reply_clusters', 0)}")
+        print(f"  redacted:     {stats.get('redacted', 0)}")
+        print(color("  Memory is ready for companion chat and proactive messages.", C.dim, not self.plain))
+
+    def import_status(self) -> None:
+        result = self.runtime.run("import_status", self.session_id, {})
+        imports = result.get("imports", [])
+        if not imports:
+            print(color("No imports for this profile.", C.dim, not self.plain))
+            return
+        for item in imports:
+            stats = item.get("stats", {})
+            print(f"{item['import_id']}  {item['source_type']}  messages={stats.get('normalized', 0)}  examples={stats.get('target_reply_examples', 0)}")
+
+    def delete_import(self, args: list[str]) -> None:
+        if not args:
+            raise ValueError("Usage: /delete-import <import_id>")
+        result = self.runtime.run("delete_import", self.session_id, {"import_id": args[0]})
+        print(color(f"Deleted import: {result['import_id']}", C.green, not self.plain))
+
+    def profile_show(self) -> None:
+        ctx = self.runtime.memory.sqlite.build_memory_context(self.session_id, query="persona profile", limit=2)
+        text = ctx.get("persona_profile_text") or "No imported persona profile yet."
+        print(text)
 
     def sessions(self) -> None:
         result = self.runtime.run("list_sessions", self.session_id, {})
@@ -1353,10 +1408,69 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", help="Chat model name")
     parser.add_argument("--plain", action="store_true", help="Disable ANSI animation/colors")
     parser.add_argument("--message", help="Send one message and exit")
+    parser.add_argument("command", nargs=argparse.REMAINDER, help="Optional headless command, e.g. import weflow ./weflow.json --profile default")
     return parser
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.command:
+        return run_headless(args)
     return CrushCLI(args).run()
+
+
+def _take_option(tokens: list[str], name: str, default: str = "") -> str:
+    if name not in tokens:
+        return default
+    idx = tokens.index(name)
+    if idx + 1 >= len(tokens):
+        return default
+    value = tokens[idx + 1]
+    del tokens[idx : idx + 2]
+    return value
+
+
+def run_headless(args: argparse.Namespace) -> int:
+    tokens = list(args.command)
+    profile = _take_option(tokens, "--profile", args.session or "default")
+    mode = _take_option(tokens, "--mode", "companion")
+    proactive_type = _take_option(tokens, "--type", "daily_checkin")
+    import_id = _take_option(tokens, "--import-id", "")
+    args.session = profile
+    cli = CrushCLI(args)
+    cli.session_id = profile
+    cli.ensure_session()
+    if tokens[:2] == ["import", "weflow"] and len(tokens) >= 3:
+        result = cli.runtime.run("weflow_import", profile, {"source_file": tokens[2]})
+        cli.print_weflow_import_result(result)
+        return 0
+    if tokens[:2] == ["import", "list"] or tokens[:2] == ["import", "status"]:
+        cli.import_status()
+        return 0
+    if tokens[:2] == ["memory", "build"] or tokens[:2] == ["memory", "rebuild"]:
+        cli.import_status()
+        print("Memory indexes are built during WeFlow import. Re-import to rebuild from source JSON.")
+        return 0
+    if tokens[:2] == ["profile", "show"]:
+        cli.profile_show()
+        return 0
+    if tokens[:2] == ["data", "delete"] and import_id:
+        cli.delete_import([import_id])
+        return 0
+    if tokens[:2] == ["proactive", "test"]:
+        result = cli.runtime.run("proactive_prompt", profile, {"event": f"proactive test: {proactive_type}", "proactive_type": proactive_type})
+        print(result["runtime_prompt"])
+        return 0
+    if tokens and tokens[0] == "chat":
+        message = " ".join(tokens[1:]).strip() or args.message or "你好"
+        turn = cli.runtime.run("chat_turn", profile, {"message": message, "mode": mode})
+        if cli.client.ready:
+            reply = cli.client.reply(turn["runtime_prompt"], message).strip()
+            cli.runtime.run("record_reply", profile, {"message": message, "npc_reply": reply, "tags": turn.get("tags", [])})
+            print(reply)
+        else:
+            print(turn["runtime_prompt"])
+        return 0
+    print("Unknown headless command. Try: import weflow <file>, import status, profile show, chat <message>, proactive test.")
+    return 2
