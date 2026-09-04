@@ -8,3 +8,4 @@ Crush.skill/dist/*.zip
 Crush.skill/dist/
 node_modules/
 .claude/skills/
+.worktrees/
