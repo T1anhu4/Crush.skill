@@ -57,7 +57,7 @@ CONTRACTS = {
             "## Skill Slash Commands",
             "## For Everyone Like The Author",
             "assets/readme-hero-en.svg",
-            "assets/readme-cli-demo-en.svg",
+            "assets/readme-cli-demo.svg",
             "assets/architecture-en.svg",
             "docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md",
             "docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md",

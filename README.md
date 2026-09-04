@@ -21,7 +21,7 @@
   ·
   <a href="#v3-living-mind正在构建">v3 Living Mind</a>
   ·
-  <a href="#当前可用以及正在构建">当前能力</a>
+  <a href="#它能做什么">当前能力</a>
   ·
   <a href="#技术架构">架构</a>
   ·
@@ -329,7 +329,7 @@ v3 还在建设，最有价值的贡献不是把它说得更像成品，而是�
 | 产品体验 | 改进 CLI、导入、复盘和开发文档，让真实测试更容易发生。 |
 | 盲测反馈 | 用匿名、虚构样本比较“像真人”与“只是会说话”的差异。 |
 
-先读 [v3 设计规格](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md) 和 [实施计划](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md)，再从 canonical `Crush-skill` 分支提交一个可验证的小改动。觉得这个方向重要，就 Star 并跟进公开开发。
+先读 [v3 设计规格](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md) 和 [实施计划](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md)，再从 [codex/v3-living-mind](https://github.com/T1anhu4/Crush-skill/tree/codex/v3-living-mind) 分支提交一个可验证的小改动。觉得这个方向重要，就 Star 并跟进公开开发。
 
 ---
 
