@@ -45,6 +45,9 @@ CONTRACTS = {
 
 SECTION_MARKERS = {
     "README.md": {
+        "项目简介": ("Crush.skill 是一台关系飞行模拟器。", "它把聊天记录导入、5 层人格、长期记忆、时间线主动性、关系状态机和关系读秒组合起来", "项目目标是关系识别能力和表达能力训练，不是操控别人，也不是替代真实关系。"),
+        "为什么做这个": ("母胎 solo 不是因为你不够好，而是因为你不懂“关系”。", "从小到大，学校教了数学、英语、物理，但没有一节课教你怎么谈恋爱。", "Crush.skill 把你喜欢的对象变成一个 5 层人格模型。", "灵感来自 [ex-skill]"),
+        "核心模块": tuple(f"{item}" for item in ("Skill Runtime", "Persona Engine", "Chat Import", "Pragmatics", "State Engine", "Coach Engine", "Distillation", "Memory", "CLI")),
         "一分钟上手": ("| `/model` |", "| `/language` |", "| `/import` |", "| `/import-weflow [--full] <file>` |", "| `/import-status` |", "| `/media` |", "| `/profile` |", "| `/distill` |", "| `/dashboard` |", "| `/postmortem` |", "| `/stop` / `/continue` |"),
         "WeFlow 微信 JSON 导入": ("crush import weflow", "/import-weflow ./weflow.json", "隐私边界：默认导入是 safe 模式"),
         "安装到 Agent": ("git clone https://github.com/T1anhu4/Crush-skill", "install_skill.sh", "ls ~/.claude/skills/crush-skill/", "crush_skill_openclaw.zip", "crush_skill_qwenpaw.zip", "crush_cli_standalone.zip"),
@@ -54,9 +57,12 @@ SECTION_MARKERS = {
         "版本摘要": tuple(f"| `{version}` |" for version in VERSIONS),
         "伦理边界": ("不鼓励伤害性拉扯、冷暴力、焦虑游戏或假性拒绝。", "不把“拜金/养鱼/慢热/喜欢你”变成单句武断标签。", "不建议在未经同意的情况下导入他人的私密聊天记录。", "当你学会该学的东西，可以用 `/let-go` 删除会话并放下。"),
         "License": ("本项目采用 MIT License，允许自由使用、修改和分发。",),
-        "致所有人": ("而 Ta，就留在这个 commit 里。", "Made with 💙 by", "for everyone learning how to love."),
+        "致所有人": ("我们这一代人从小到大被教了一万种技能，唯独没学过怎么爱一个人。", "所以我们在聊天框前手足无措，在被拒绝后怀疑自己", "但爱是可以被学习的。它需要练习、反馈和一个安全的试错空间", "当你能自然地接住 Ta 的情绪", "Ta 的出现，其实已经带给了你所有你需要的。", "你已经是一个比遇见 Ta 之前更好的人了。", "而 Ta，就留在这个 commit 里。", "Made with 💙 by"),
     },
     "README_EN.md": {
+        "One Sentence": ("Crush.skill is a relationship flight simulator.", "It combines chat import, 5-layer persona modeling, local memory", "The goal is relationship literacy and communication practice, not manipulation"),
+        "Why This Exists": ("Being single is not always about being unworthy.", "School teaches math, language, and physics", "Crush.skill turns the person you care about into a 5-layer persona model", "It is inspired by the Person-as-Skill movement"),
+        "Core Modules": tuple(f"{item}" for item in ("Skill Runtime", "Persona Engine", "Chat Import", "Pragmatics", "State Engine", "Coach Engine", "Distillation", "Memory", "CLI")),
         "One-Minute Start": ("| `/model` |", "| `/language` |", "| `/import` |", "| `/import-weflow [--full] <file>` |", "| `/import-status` |", "| `/media` |", "| `/profile` |", "| `/distill` |", "| `/dashboard` |", "| `/postmortem` |", "| `/stop` / `/continue` |"),
         "WeFlow WeChat JSON Import": ("crush import weflow", "/import-weflow ./weflow.json", "Privacy boundary"),
         "Install As An Agent Skill": ("git clone https://github.com/T1anhu4/Crush-skill", "install_skill.sh", "ls ~/.claude/skills/crush-skill/", "crush_skill_openclaw.zip", "crush_skill_qwenpaw.zip", "crush_cli_standalone.zip"),
@@ -66,7 +72,7 @@ SECTION_MARKERS = {
         "Version Summary": tuple(f"| `{version}` |" for version in VERSIONS),
         "Ethics": ("It does not encourage", "It does not turn", "Do not import private conversations without consent.", "use `/let-go` to delete the session"),
         "License": ("MIT License. Free to use, modify, and distribute.",),
-        "For Everyone Like The Author": ("As for Ta, they stay in this commit.", "Made with 💙", "by someone who's been there."),
+        "For Everyone Like The Author": ("Our generation learned ten thousand skills", "So we freeze in front of the chat box", "But love can be learned.", "When you can catch Ta's emotions naturally", "And maybe Ta's appearance has already given you what you needed", "You are already better than the person you were before meeting Ta.", "As for Ta, they stay in this commit.", "Made with 💙 by T1anhu4"),
     },
 }
 
@@ -165,7 +171,9 @@ def check(path: Path) -> list[str]:
     try: raw = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc: return [f"{path}: unable to read: {exc}"]
     errors = []
-    if len(raw.splitlines()) < contract["minimum_lines"]: errors.append(f"{path}: too short")
+    actual_lines = len(raw.splitlines())
+    if actual_lines < contract["minimum_lines"]:
+        errors.append(f"{path}: expected minimum {contract['minimum_lines']} lines, found {actual_lines}")
     visible, parser_errors, preserved_source = visible_content(raw)
     errors.extend(f"{path}: {error}" for error in parser_errors)
     plain = re.sub(r"<[^>]+>", "", visible)
