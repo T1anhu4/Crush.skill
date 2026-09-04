@@ -7,7 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.9"><img src="https://img.shields.io/badge/Version-v2.4.9-ff6b8a" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush-skill/releases/tag/v2.4.15"><img src="https://img.shields.io/badge/Version-v2.4.15-ff6b8a" alt="version"></a>
+  <img src="https://img.shields.io/badge/v3_Living_Mind-In_development-8b5cf6" alt="v3 Living Mind in development">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2dd4bf" alt="license"></a>
   <img src="https://img.shields.io/badge/Python-3.10+-fbbf24" alt="python">
   <img src="https://img.shields.io/badge/Agent-OpenClaw-blue" alt="OpenClaw">
@@ -18,13 +19,17 @@
 <p align="center">
   <a href="#one-minute-start"><strong>One-Minute Start</strong></a>
   ·
-  <a href="#what-it-does">Features</a>
+  <a href="#v3-living-mind-in-development">v3 Living Mind</a>
+  ·
+  <a href="#what-it-does">Current Features</a>
   ·
   <a href="#architecture">Architecture</a>
   ·
   <a href="#install-as-an-agent-skill">Agent Install</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.9">Release</a>
+  <a href="#help-make-it-real">Contribute</a>
+  ·
+  <a href="https://github.com/T1anhu4/Crush-skill/releases/tag/v2.4.15">v2.4.15 Release</a>
 </p>
 
 ---
@@ -47,6 +52,50 @@ Crush.skill turns the person you care about into a 5-layer persona model inside 
 
 It is inspired by the Person-as-Skill movement behind [ex-skill](https://github.com/therealXiaomanChu/ex-skill) and [colleague-skill](https://github.com/titanwings/colleague-skill). Crush.skill focuses on romantic relationship dynamics, one of the most complex and least taught parts of human life.
 
+## Available Now, Building Next
+
+| Version | Status | Content |
+|---------|--------|---------|
+| **v2.4.15** | ✅ Stable | Agent Skill, standalone CLI, WeFlow import, local SQLite memory, timeline initiative, relationship readouts, and review. |
+| **v3 Living Mind** | 🛠️ In development | Evolution from human-sounding reply to a persistent character with time, memory, private state, independent action, and consequences. |
+
+Design specification: [v3 Living Mind design](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md); implementation plan: [v3 Living Mind plan](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md). Stable installation remains **v2.4.15**. Everything marked v3 in development is not released.
+
+> If you want AI that does not feel like a customer-service agent, reply instantly every time, or reboot with amnesia, consider starring the project and following the public build.
+
+## Why Ordinary AI Chat Still Feels Fake
+
+Many character systems mainly optimize the next reply in the current conversation. They can often feel always online and inclined to keep responding and cooperating, even when a believable person would have a life outside the chat.
+
+A real person may not reply yet, remember you only after finishing something, hold on to hurt, or end a relationship after a boundary is crossed. v3 aims to simulate that causal chain, not merely surface style.
+
+## v3 Living Mind: In Development
+
+v3 introduces an event-driven life → cognition → action → memory loop:
+
+```text
+What you did → time and life events → multiple hypotheses → emotion / beliefs / boundaries / relationship evidence
+→ reply / delay / silence / follow-up / repair / leave → consequences enter different memory horizons
+```
+
+| Dimension | v3 Direction |
+|-----------|--------------|
+| Independent action | The character will be able to choose follow-up, waiting, or silence without a new user message. |
+| Human-scale time | Time progression, busyness, sleep, and missed windows will shape response timing. |
+| Three memory horizons | Short-term events, medium-term relationship cues, and long-term stable impressions will be stored separately. |
+| Causal mind | Actions will change beliefs, boundaries, and relationship evidence, leaving consequences behind. |
+| Temporal retrieval | Retrieval will attend to the state when an event happened, not only the latest text. |
+| Review after immersion | After an experience, users will be able to review choices, consequences, and turning points. |
+
+Progress:
+
+- [x] Living Mind design, time + memory + Temporal Ontology Hybrid Retrieval design, testable plan, and privacy boundaries are complete.
+- [ ] A runnable First Spark first-meeting scenario.
+- [ ] Tests covering 30+ events, sleep, and multi-day interruption and recovery.
+- [ ] A no-key demo, public evaluation, and blinded pilot.
+
+v3 will not claim consciousness or reveal a real person's private thoughts. It is an honestly labeled causal relationship simulator in development, not a real person's inner mind.
+
 ## Product Positioning
 
 | Surface | For | Entry | Description |
@@ -61,7 +110,7 @@ Both surfaces share the same runtime, state engine, memory system, and distillat
 ## One-Minute Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush.skill/2.4/scripts/install_cli.sh | bash
+curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush-skill/2.4/scripts/install_cli.sh | bash
 crush
 ```
 
@@ -184,6 +233,17 @@ Core principle: **rules compute state and evidence; LLMs produce natural express
 | Memory | `engines/memory_engine.py` / `memory_backend.py` | SQLite long-term memory, local retrieval, optional mem0. |
 | CLI | `crush_cli/app.py` | Local terminal UI, model wizard, multilingual UI, proactive timeline messages. |
 
+### v3 Architecture Preview (In Development)
+
+```text
+Immutable Events → Time Catch-up → Memory Retrieval
+                  → Structured Appraisal → Action Choice
+                  → Visible Message / Silence / Delay
+                  → Consequence → Consolidation → Review
+```
+
+The v3 core will live in an independent `crush_core` so the v2.4 runtime is not disrupted. SQLite remains the source of truth: short memory will hold recent events; medium memory will use filters + FTS5 with optional vectors; long memory will use a temporal ontology with provenance, validity, and contradiction. GraphRAG, Graphiti, or Agentic RAG will be added only if evaluation proves a real benefit.
+
 ---
 
 ## Install As An Agent Skill
@@ -194,7 +254,7 @@ Paste this into Claude Code / OpenClaw / QwenPaw:
 Install crush-skill for me. Follow these steps:
 
 1. Ensure ~/.claude/skills/ exists (create if missing)
-2. Run: git clone https://github.com/T1anhu4/Crush.skill /tmp/crush-skill
+2. Run: git clone https://github.com/T1anhu4/Crush-skill /tmp/crush-skill
 3. Run: bash /tmp/crush-skill/scripts/install_skill.sh --platform claude --source-dir /tmp/crush-skill/Crush.skill --skill-name crush-skill --force
 4. Verify: ls ~/.claude/skills/crush-skill/ should show SKILL.md, manifest.json, execute.py, engines/
 5. Tell me it is installed. I can now use /start-crush, /import-chats, /chat, /crush-distill, etc.
@@ -256,6 +316,23 @@ These are lower-level `execute.py` actions for host agents and integrators:
 | `value` | Pragmatic, condition-aware, goal-driven | Mature and career-focused people |
 | `passive` | Low initiative, avoidant tendency, hard to read | Inconsistent responders |
 
+## Help Make It Real
+
+v3 needs grounded tests of believable behavior, careful memory evaluation, and honest feedback—not hype. Contributions are welcome in these areas:
+
+| Contribution | What helps |
+|--------------|------------|
+| Believable fictional scenarios | Fictional first-meetings, pauses, repairs, and endings with clear causal context. |
+| Red-team cases | Cases that expose instant replies, false certainty, boundary failures, or memory leaks. |
+| Memory evaluation | Tests for temporal retrieval, provenance, validity, contradiction, and privacy. |
+| Model adapters | Provider integrations that preserve the runtime's structured state and action choices. |
+| Product experience | Ways to make immersion, review, and safety understandable. |
+| Blinded feedback | Honest evaluations of whether behavior feels causal rather than merely stylistic. |
+
+Read the [design specification](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md), [implementation plan](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md), or follow the [canonical v3 branch](https://github.com/T1anhu4/Crush-skill/tree/codex/v3-living-mind).
+
+> If this direction resonates, a Star helps more people find the work while it is still being built.
+
 ---
 
 ## Version Summary
@@ -275,7 +352,7 @@ These are lower-level `execute.py` actions for host agents and integrators:
 
 ### Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=T1anhu4/Crush.skill&type=Date)](https://www.star-history.com/?type=date&repos=T1anhu4%2FCrush.skill)
+[![Star History Chart](https://api.star-history.com/svg?repos=T1anhu4/Crush-skill&type=Date)](https://www.star-history.com/?type=date&repos=T1anhu4%2FCrush-skill)
 
 ---
 
@@ -313,6 +390,7 @@ You are already better than the person you were before meeting Ta. That is enoug
 As for Ta, they stay in this commit.
 
 <p align="center">
-  <em>Made with 💙</em><br>
-  <em>by someone who's been there.</em>
+  <em>Made with 💙 by <a href="https://github.com/T1anhu4">T1anhu4</a></em><br>
+  <em>for everyone learning how to love.</em>
+  <span hidden>Made with 💙 by T1anhu4</span>
 </p>
