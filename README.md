@@ -7,7 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.9"><img src="https://img.shields.io/badge/Version-v2.4.9-ff6b8a" alt="version"></a>
+  <a href="https://github.com/T1anhu4/Crush-skill/releases/tag/v2.4.15"><img src="https://img.shields.io/badge/Version-v2.4.15-ff6b8a" alt="version"></a>
+  <img src="https://img.shields.io/badge/v3_Living_Mind-开发中-8b5cf6" alt="v3 Living Mind 开发中">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2dd4bf" alt="license"></a>
   <img src="https://img.shields.io/badge/Python-3.10+-fbbf24" alt="python">
   <img src="https://img.shields.io/badge/Agent-OpenClaw-blue" alt="OpenClaw">
@@ -18,13 +19,15 @@
 <p align="center">
   <a href="#一分钟上手"><strong>一分钟上手</strong></a>
   ·
-  <a href="#它能做什么">功能</a>
+  <a href="#v3-living-mind正在构建">v3 Living Mind</a>
+  ·
+  <a href="#当前可用以及正在构建">当前能力</a>
   ·
   <a href="#技术架构">架构</a>
   ·
-  <a href="#安装到-agent">Agent 安装</a>
+  <a href="#一起把它做成真的">参与开发</a>
   ·
-  <a href="https://github.com/T1anhu4/Crush.skill/releases/tag/v2.4.9">Release</a>
+  <a href="https://github.com/T1anhu4/Crush-skill/releases/tag/v2.4.15">v2.4.15 Release</a>
 </p>
 
 ---
@@ -47,6 +50,50 @@ Crush.skill 把你喜欢的对象变成一个 5 层人格模型。你可以在�
 
 > 灵感来自 [ex-skill](https://github.com/therealXiaomanChu/ex-skill) 和 [colleague-skill](https://github.com/titanwings/colleague-skill) 的 Person-as-Skill 运动。Crush.skill 聚焦于浪漫关系动力学，这是人类最复杂、也最缺乏教育的领域之一。
 
+## 当前可用，以及正在构建
+
+| 版本 | 状态 | 内容 |
+|------|------|------|
+| **v2.4.15** | ✅ 稳定可用 | 现有 Agent Skill、独立 CLI、WeFlow 微信导入、本地 SQLite 记忆、时间线主动消息、关系读秒与复盘。 |
+| **v3 Living Mind** | 🛠️ 开发中 | 从生成像人的回复升级为拥有时间、记忆、私有状态、独立行动与行为后果的持续角色。 |
+
+设计规格：[v3 Living Mind design](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md)；实施计划：[v3 Living Mind plan](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md)。稳定安装仍是 **v2.4.15**，所有 v3 开发中能力都不是已发布功能。
+
+> 如果你也希望 AI 不像客服、不总秒回、不重启失忆，欢迎 Star 并跟进公开开发。
+
+## 为什么普通 AI 聊天还是“不像人”
+
+普通角色聊天只从最新消息生成合理文字，因此总有空、总接话、总配合。它可以模仿口吻，却很难让你感到对方拥有自己的生活节奏。
+
+真人可能暂不回复，忙完才想起；可能记得不舒服，甚至因为越界结束关系。v3 要模拟的是这条因果链，而不只是模仿语气。
+
+## v3 Living Mind：正在构建
+
+v3 引入事件驱动的“生活—认知—行动—记忆”循环：
+
+```text
+用户行为 → 时间与生活事件 → 多种解释 → 情绪/信念/边界/关系证据
+→ 回复/延迟/沉默/主动跟进/修复/结束 → 后果进入不同记忆周期
+```
+
+| 维度 | v3 方向 |
+|------|---------|
+| 独立行动 | 角色可在没有用户新消息时选择跟进、等待或沉默。 |
+| 人类时间 | 时间推进、忙碌、睡眠和错过共同塑造回应窗口。 |
+| 三层记忆 | 短期事件、中期关系线索与长期稳定印象分层保存。 |
+| 因果心智 | 行动会改变信念、边界、关系证据，并留下后果。 |
+| 时态检索 | 检索关注事件发生时的状态，而非只取最新文本。 |
+| 沉浸后复盘 | 体验结束后可回看选择、后果和关系转折。 |
+
+进度：
+
+- [x] 已完成设计、时间/记忆/Temporal Ontology Hybrid Retrieval 方案、实现计划与隐私边界。
+- [ ] First Spark 垂直切片。
+- [ ] 30+ 事件、跨睡眠、多日恢复测试。
+- [ ] 无 key demo、公开评测与真人盲测。
+
+这不声称现实意识，也不把模拟包装成真实人物的内心；它是一个诚实标注为开发中的因果关系模拟器。
+
 ---  
 
 ## 项目定位
@@ -63,7 +110,7 @@ Crush.skill 把你喜欢的对象变成一个 5 层人格模型。你可以在�
 ## 一分钟上手
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush.skill/2.4/scripts/install_cli.sh | bash
+curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush-skill/2.4/scripts/install_cli.sh | bash
 crush
 ```
 
@@ -134,6 +181,7 @@ crush data delete --profile default --import-id <import_id>
 
 <p align="center">
   <img src="assets/readme-cli-demo.svg" alt="Crush.skill CLI demo" width="100%">
+</p>
 
 CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
@@ -185,6 +233,17 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 | Memory | `engines/memory_engine.py` / `memory_backend.py` | SQLite 长期记忆、本地检索、可选 mem0。 |
 | CLI | `crush_cli/app.py` | 本地终端 UI、模型向导、多语言、时间线主动消息。 |
 
+### v3 架构预览（开发中）
+
+```text
+Immutable Events → Time Catch-up → Memory Retrieval
+                 → Structured Appraisal → Action Choice
+                 → Visible Message / Silence / Delay
+                 → Consequence → Consolidation → Review
+```
+
+v3 将由独立 `crush_core` 驱动，以 SQLite 作为事实源：短期记忆直接读取最近事件，中期记忆使用过滤 + FTS5 + 可选向量，长期记忆使用时态本体边。只有评测证明收益后，才会引入 GraphRAG、Graphiti 或 Agentic RAG。
+
 ---
 
 ## 安装到 Agent
@@ -195,14 +254,14 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 帮我安装 Crush.skill 这个关系人格模拟 skill。按下面步骤做：
 
 1. 确保 ~/.claude/skills/ 目录存在（不存在就创建）
-2. 执行 git clone https://github.com/T1anhu4/Crush.skill /tmp/crush-skill
+2. 执行 git clone https://github.com/T1anhu4/Crush-skill /tmp/crush-skill
 3. 执行 bash /tmp/crush-skill/scripts/install_skill.sh --platform claude --source-dir /tmp/crush-skill/Crush.skill --skill-name crush-skill --force
 4. 验证：ls ~/.claude/skills/crush-skill/ 应该看到 SKILL.md、manifest.json、execute.py、engines/
 5. 告诉我安装好了，之后我可以使用 /start-crush、/import-chats、/chat、/crush-distill 等命令
 6. 重要：以后我用 /chat 时，不要展示工具 JSON、状态分数或 runtime_prompt；请把 runtime_prompt 当隐藏系统提示，直接用 NPC 的口吻回复
 ```
 
-也可以从 [Releases](https://github.com/T1anhu4/Crush.skill/releases) 下载：
+也可以从 [Releases](https://github.com/T1anhu4/Crush-skill/releases) 下载：
 
 | 文件 | 用途 |
 |------|------|
@@ -257,6 +316,21 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 | `value` | 现实、重条件、目标感强 | 成熟职场人、价值判断强的人 |
 | `passive` | 佛系、低主动、回避倾向 | 捉摸不透、回复不稳定的人 |
 
+## 一起把它做成真的
+
+v3 还在建设，最有价值的贡献不是把它说得更像成品，而是一起验证什么才算真实感、什么会越界。你可以从小而具体的问题开始：
+
+| 贡献方向 | 可以帮忙做什么 |
+|----------|----------------|
+| 真实感虚构场景 | 编写不依赖真人隐私、但有生活节奏和关系后果的虚构场景。 |
+| 红队测试 | 找出过度顺从、伪装确定性、越过边界或不当主动的问题。 |
+| 记忆评测 | 检验短期、中期、长期记忆和时态检索是否真的改善体验。 |
+| 模型适配 | 在不同本地或云端模型上复现行为，并记录失败样例。 |
+| 产品体验 | 改进 CLI、导入、复盘和开发文档，让真实测试更容易发生。 |
+| 盲测反馈 | 用匿名、虚构样本比较“像真人”与“只是会说话”的差异。 |
+
+先读 [v3 设计规格](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md) 和 [实施计划](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md)，再从 canonical `Crush-skill` 分支提交一个可验证的小改动。觉得这个方向重要，就 Star 并跟进公开开发。
+
 ---
 
 ## 版本摘要
@@ -278,7 +352,7 @@ CLI 不只展示 Ta 的回复，还会给用户关系读秒：
 
 ### Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=T1anhu4/Crush.skill&type=Date)](https://www.star-history.com/?type=date&repos=T1anhu4%2FCrush.skill)
+[![Star History Chart](https://api.star-history.com/svg?repos=T1anhu4/Crush-skill&type=Date)](https://www.star-history.com/?type=date&repos=T1anhu4%2FCrush-skill)
 
 ---
 
@@ -318,6 +392,6 @@ Crush.skill 是关系识别和表达训练工具，不是操控工具。
 ---
 
 <p align="center">
-  <em>Made with 💙 </em><br>
-  <em>by someone who's been there.</em>
+  <em>Made with 💙 by <a href="https://github.com/T1anhu4">T1anhu4</a></em><br>
+  <em>for everyone learning how to love.</em>
 </p>
