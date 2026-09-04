@@ -57,7 +57,7 @@ It is inspired by the Person-as-Skill movement behind [ex-skill](https://github.
 | Version | Status | Content |
 |---------|--------|---------|
 | **v2.4.15** | ✅ Stable | Agent Skill, standalone CLI, WeFlow import, local SQLite memory, timeline initiative, relationship readouts, and review. |
-| **v3 Living Mind** | 🛠️ In development | Evolution from human-sounding reply to a persistent character with time, memory, private state, independent action, and consequences. |
+| **v3 Living Mind** | 🛠️ In development | Evolution from human-sounding replies to a persistent character with time, memory, private state, independent action, and consequences. |
 
 Design specification: [v3 Living Mind design](docs/superpowers/specs/2026-09-04-crush-v3-living-mind-design.md); implementation plan: [v3 Living Mind plan](docs/superpowers/plans/2026-09-04-crush-v3-living-mind.md). Stable installation remains **v2.4.15**. Everything marked v3 in development is not released.
 
@@ -67,7 +67,7 @@ Design specification: [v3 Living Mind design](docs/superpowers/specs/2026-09-04-
 
 Many character systems mainly optimize the next reply in the current conversation. They can often feel always online and inclined to keep responding and cooperating, even when a believable person would have a life outside the chat.
 
-A real person may not reply yet, remember you only after finishing something, hold on to hurt, or end a relationship after a boundary is crossed. v3 aims to simulate that causal chain, not merely surface style.
+A real person may not reply yet, think of you only after finishing something, hold on to hurt, or end a relationship after a boundary is crossed. v3 aims to simulate that causal chain, not merely surface style.
 
 ## v3 Living Mind: In Development
 
@@ -80,7 +80,7 @@ What you did → time and life events → multiple hypotheses → emotion / beli
 
 | Dimension | v3 Direction |
 |-----------|--------------|
-| Independent action | The character will be able to choose follow-up, waiting, or silence without a new user message. |
+| Independent action | The character will be able to choose to follow up, wait, or remain silent without a new user message. |
 | Human-scale time | Time progression, busyness, sleep, and missed windows will shape response timing. |
 | Three memory horizons | Short-term events, medium-term relationship cues, and long-term stable impressions will be stored separately. |
 | Causal mind | Actions will change beliefs, boundaries, and relationship evidence, leaving consequences behind. |
@@ -89,12 +89,12 @@ What you did → time and life events → multiple hypotheses → emotion / beli
 
 Progress:
 
-- [x] Living Mind design, time + memory + Temporal Ontology Hybrid Retrieval design, testable plan, and privacy boundaries are complete.
+- [x] The Living Mind architecture, time and memory model, Temporal Ontology Hybrid Retrieval approach, implementation plan, and privacy boundaries are complete.
 - [ ] A runnable First Spark first-meeting scenario.
 - [ ] Tests covering 30+ events, sleep, and multi-day interruption and recovery.
 - [ ] A no-key demo, public evaluation, and blinded pilot.
 
-v3 will not claim consciousness or reveal a real person's private thoughts. It is an honestly labeled causal relationship simulator in development, not a real person's inner mind.
+v3 will not claim that a character is conscious or that it reveals a real person's private thoughts. It is an honestly labeled causal relationship simulator in development, not a real person's inner mind.
 
 ## Product Positioning
 
