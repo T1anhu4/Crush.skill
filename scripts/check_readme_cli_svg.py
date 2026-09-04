@@ -15,10 +15,11 @@ REVEAL_KEYFRAMES = ("reveal-one", "reveal-two", "reveal-three")
 NUMBER = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)"
 TRANSLATE = re.compile(rf"translate\(\s*({NUMBER})[ ,]+({NUMBER})\s*\)")
 LAYOUTS = {
-    "message-one-layout": (132, "reveal-one", 106, 238),
-    "readout-layout": (274, "reveal-two", 70, 344),
-    "message-two-layout": (388, "reveal-three", 110, 498),
+    "message-one-layout": (132, "reveal-one", 106, 238, 250),
+    "readout-layout": (274, "reveal-two", 70, 344, 356),
+    "message-two-layout": (376, "reveal-three", 110, 486, 498),
 }
+MAX_REVEAL_TRANSLATE_Y = 12
 REVEAL_TIMELINES = {
     "reveal-one": "@keyframesreveal-one{0%,5%{opacity:0;transform:translateY(12px)}12%,92%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}",
     "reveal-two": "@keyframesreveal-two{0%,33%{opacity:0;transform:translateY(12px)}40%,92%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}",
@@ -42,7 +43,12 @@ def element_by_id(elements: dict[str, ET.Element], element_id: str) -> ET.Elemen
 
 def main() -> int:
     root = ET.parse(SVG_PATH).getroot()
-    elements = {element.get("id"): element for element in root.iter() if element.get("id")}
+    elements: dict[str, ET.Element] = {}
+    for element in root.iter():
+        element_id = element.get("id")
+        if element_id is not None:
+            assert element_id not in elements, f"duplicate id: {element_id}"
+            elements[element_id] = element
     assert root.get("width") == "1200", "SVG width must be 1200"
     assert root.get("height") == "620", "SVG height must be 620"
     assert root.get("viewBox") == "0 0 1200 620", "SVG viewBox must be 0 0 1200 620"
@@ -68,7 +74,7 @@ def main() -> int:
     assert "@media(prefers-reduced-motion:reduce){.cursor,.wait,.reveal{animation:none;opacity:1;transform:none}}" in style, "missing reduced-motion reveal contract"
 
     panel_height = numeric(panel.get("height"), "terminal-panel height")
-    for layout_id, (expected_y, reveal_class, expected_local_max, expected_absolute_max) in LAYOUTS.items():
+    for layout_id, (expected_y, reveal_class, expected_local_max, expected_resting_bottom, expected_animated_bottom) in LAYOUTS.items():
         layout = element_by_id(elements, layout_id)
         transform = layout.get("transform")
         match = TRANSLATE.fullmatch(transform.strip()) if transform else None
@@ -87,10 +93,13 @@ def main() -> int:
         baselines = [numeric(text.get("y"), f"{layout_id} text y") for text in inner.iter() if local_name(text) == "text"]
         assert baselines, f"{layout_id} reveal group must contain text"
         local_max = max(baselines)
-        absolute_max = base_y + local_max
+        resting_bottom = base_y + local_max
+        animated_bottom = resting_bottom + MAX_REVEAL_TRANSLATE_Y
         assert local_max == expected_local_max, f"{layout_id} max local y must be {expected_local_max}"
-        assert absolute_max == expected_absolute_max, f"{layout_id} max absolute y must be {expected_absolute_max}"
-        assert absolute_max <= panel_height - 20, f"{layout_id} exceeds terminal-panel bottom clearance"
+        assert resting_bottom == expected_resting_bottom, f"{layout_id} resting bottom must be {expected_resting_bottom}"
+        assert animated_bottom == expected_animated_bottom, f"{layout_id} animated bottom must be {expected_animated_bottom}"
+        assert resting_bottom <= panel_height - 20, f"{layout_id} resting bottom exceeds terminal-panel clearance"
+        assert animated_bottom <= panel_height - 20, f"{layout_id} animated bottom exceeds terminal-panel clearance"
 
     print("CLI SVG animation contract passed")
     return 0

@@ -46,7 +46,7 @@
       </g>
     </g>
 
-    <g id="message-two-layout" transform="translate(46 388)">
+    <g id="message-two-layout" transform="translate(46 376)">
       <g class="reveal reveal-three">
         <text class="dim wait" x="0" y="0">[time passes] waiting for your reply...</text>
         <text class="mono rose" x="0" y="38">╭─ Ta</text><text class="dim" x="904" y="38">23:08</text>
