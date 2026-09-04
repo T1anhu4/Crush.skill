@@ -77,7 +77,7 @@ SECTION_MARKERS = {
         "Version Summary": tuple(f"| `{version}` |" for version in VERSIONS),
         "Ethics": ("It does not encourage", "It does not turn", "Do not import private conversations without consent.", "use `/let-go` to delete the session"),
         "License": ("MIT License. Free to use, modify, and distribute.",),
-        "For Everyone Like The Author": ("Our generation learned ten thousand skills", "So we freeze in front of the chat box", "But love can be learned.", "When you can catch Ta's emotions naturally", "And maybe Ta's appearance has already given you what you needed", "You are already better than the person you were before meeting Ta.", "As for Ta, they stay in this commit.", "Made with 💙 by T1anhu4"),
+        "For Everyone Like The Author": ("Our generation learned ten thousand skills", "So we freeze in front of the chat box", "But love can be learned.", "When you can catch Ta's emotions naturally", "And maybe Ta's appearance has already given you what you needed", "You are already better than the person you were before meeting Ta.", "As for Ta, they stay in this commit.", "  <em>Made with 💙 by <a href=\"https://github.com/T1anhu4\">T1anhu4</a></em><br>", "  <em>for everyone learning how to love.</em>"),
     },
 }
 

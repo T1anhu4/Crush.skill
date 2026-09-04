@@ -237,9 +237,9 @@ Core principle: **rules compute state and evidence; LLMs produce natural express
 
 ```text
 Immutable Events → Time Catch-up → Memory Retrieval
-                  → Structured Appraisal → Action Choice
-                  → Visible Message / Silence / Delay
-                  → Consequence → Consolidation → Review
+                 → Structured Appraisal → Action Choice
+                 → Visible Message / Silence / Delay
+                 → Consequence → Consolidation → Review
 ```
 
 The v3 core will live in an independent `crush_core` so the v2.4 runtime is not disrupted. SQLite remains the source of truth: short memory will hold recent events; medium memory will use filters + FTS5 with optional vectors; long memory will use a temporal ontology with provenance, validity, and contradiction. GraphRAG, Graphiti, or Agentic RAG will be added only if evaluation proves a real benefit.
@@ -392,5 +392,4 @@ As for Ta, they stay in this commit.
 <p align="center">
   <em>Made with 💙 by <a href="https://github.com/T1anhu4">T1anhu4</a></em><br>
   <em>for everyone learning how to love.</em>
-  <span hidden>Made with 💙 by T1anhu4</span>
 </p>
