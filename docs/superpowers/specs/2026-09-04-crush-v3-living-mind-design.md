@@ -1,12 +1,14 @@
 # Crush.skill v3 Living Mind Vertical Slice Design
 
-Status: approved direction, implementation-gate specification  
-Date: 2026-09-04  
+Status: approved direction with memory/time amendment, implementation-gate specification
+
+Date: 2026-09-04
+
 Target branch: `codex/v3-living-mind`
 
 ## 1. Decision Summary
 
-Crush.skill v3 will be a local-first relationship training simulator whose main differentiator is a persistent, event-driven character mind. The character must have a life, incomplete thoughts, changing interpretations, limited attention, boundaries, and consequences that persist across turns. The product will not claim that a model is conscious or that it reveals a real person's thoughts.
+Crush.skill v3 will be a local-first relationship training simulator whose main differentiator is a persistent, event-driven character mind. The character must have a life, incomplete thoughts, changing interpretations, limited attention, boundaries, and consequences that persist across turns. Short-, medium-, and long-term memory plus human-scale time cycles preserve continuity when a user leaves to work, sleep, or live their life. The product will not claim that a model is conscious or that it reveals a real person's thoughts.
 
 The first implementation cycle is deliberately limited to one end-to-end vertical slice named **First Spark**. It will prove or disprove the human-likeness architecture before the project expands into a desktop app, mobile notifications, cloud sync, or a large scenario marketplace.
 
@@ -69,6 +71,18 @@ The character may:
 
 First Spark supports real time and an accelerated demo clock. Meaningful events, not fixed polling intervals, advance the mind. When the process is closed, it does not claim to keep thinking. On resume, a deterministic catch-up step evaluates elapsed time and creates only the events that would still matter.
 
+The timeline distinguishes normal life absence from relationship behavior. A user being asleep, at work, commuting, or away from the app is ambiguous evidence. The character may notice a gap, but cannot automatically conclude that the user is ignoring them. Interpretation depends on prior plans, normal rhythm, explicit expectations, time zone, repeated patterns, and whether a message genuinely called for a timely response.
+
+The simulated person follows multiple nested cycles:
+
+- **Circadian cycle:** sleep, waking, commuting, meals, focused work, social time, and evening decompression affect availability and expression.
+- **Weekly rhythm:** workdays, weekends, recurring commitments, and known plans create predictable but imperfect routines.
+- **Conversation cycle:** opening, active exchange, natural pause, unresolved loop, follow-up window, and closure.
+- **Emotional cycle:** activation, appraisal, residual feeling, regulation, and decay occur over different durations.
+- **Relationship cycle:** curiosity, familiarity, trust formation, rupture, repair, plateau, distance, and closure evolve over days or weeks rather than one score update.
+
+During sleep, the character does not send ordinary chat messages. A sleep-boundary event decays transient emotion and consolidates important memories. Long gaps expire some open loops, preserve promises and high-salience moments, and create uncertainty rather than automatic punishment.
+
 ### 4.4 Review
 
 A review becomes available at a natural checkpoint or session end. It includes:
@@ -100,6 +114,7 @@ v3 therefore changes the state model and generation contract rather than adding 
 
 - **Python 3.11+ domain package** with typed Pydantic models.
 - **SQLite event store** as the local source of truth, with explicit migrations and transactional snapshots.
+- **Temporal ontology hybrid retrieval** over the SQLite source of truth: exact temporal queries and FTS5 first, optional embeddings second, bounded graph traversal third.
 - **Provider-neutral model interface** designed for OpenAI-compatible, Anthropic, Gemini, and deterministic fake providers. The vertical slice implements the deterministic fake provider and one OpenAI-compatible HTTP provider; native Anthropic and Gemini v3 adapters belong to the compatibility cycle. Existing v2 provider support remains unchanged meanwhile.
 - **MCP and Agent Skill adapters** as transports around the domain API, not as the domain core.
 - **Optional OpenAI Agents SDK adapter** for applications that want its sessions, guardrails, and tracing. Sensitive tracing is disabled by default.
@@ -164,7 +179,9 @@ The system never stores or exposes a model's raw hidden reasoning. A model retur
 
 ### 7.4 World and time
 
-`WorldState` holds the simulated clock, current scene, scheduled obligations, social context, and a small queue of seeded life events. Life events are constrained by the dossier and scenario. The generator cannot invent a major tragedy merely to create engagement.
+`WorldState` holds the simulated clock, user and character time zones, current scene, sleep window, recurring routines, scheduled obligations, social context, and a small queue of seeded life events. Life events are constrained by the dossier and scenario. The generator cannot invent a major tragedy merely to create engagement.
+
+`TemporalState` records the last processed instant, next meaningful wake-up, active conversation window, expected-response windows, routine deviations, and the relationship phase clock. Time is calculated from timezone-aware instants. Daylight-saving and clock changes cannot create duplicate events.
 
 ### 7.5 Events and actions
 
@@ -172,7 +189,14 @@ Every meaningful change is an immutable `SimulationEvent`, for example:
 
 - `UserMessageReceived`
 - `TimeElapsed`
+- `SleepCycleStarted`
+- `SleepCycleEnded`
+- `RoutineWindowEntered`
 - `LifeEventOccurred`
+- `LongAbsenceObserved`
+- `MemoryConsolidated`
+- `MemoryRecalled`
+- `MemoryForgotten`
 - `MessageConsidered`
 - `MessageSent`
 - `MessageWithheld`
@@ -211,18 +235,144 @@ The default high-fidelity path uses two model calls: one structured appraisal/ac
 - **Non-servility:** the character has topics, goals, and limits unrelated to satisfying the user.
 - **No forced drama:** event budgets and plausibility checks prevent manipulative cliffhangers.
 
-## 10. Memory and Retrieval
+## 10. Memory, Consolidation, and Forgetting
 
-Memory is separated into:
+Memory has explicit time horizons. These are storage and behavior contracts, not three unrelated vector indexes.
 
-1. Transcript memory for exact recent conversation.
-2. Episodic memory for concrete events and their emotional consequences.
+### 10.1 Short-term memory
+
+Short-term memory contains the active conversational workspace:
+
+- recent verbatim message turns and message timing;
+- the current scene, topic stack, references such as "that" or "tomorrow," and intended reply target;
+- immediate affect and its cause;
+- pending drafts, withheld intents, and unresolved questions;
+- near-term expectations, such as waiting for the user to confirm arrival.
+
+It is exact, small, and fast. Most low-salience details leave the active workspace after the conversation closes or a sleep cycle occurs. Leaving short-term memory does not necessarily delete a detail; consolidation may promote it.
+
+### 10.2 Medium-term memory
+
+Medium-term memory covers meaningful episodes across days and weeks:
+
+- recent conversations and their emotional result;
+- dates, cancellations, repairs, repeated habits, shared jokes, and emerging preferences;
+- who initiated, which expectations were met, and which patterns are still uncertain;
+- current relationship hypotheses with supporting and contradicting evidence;
+- promises, plans, anniversaries, deadlines, and other prospective memories.
+
+Medium-term episodes decay by time, low salience, contradiction, and lack of reuse. Repetition, emotional intensity, explicit importance, fulfilled promises, and later recall strengthen them. A pattern is not promoted merely because the same parser label appeared twice.
+
+### 10.3 Long-term memory
+
+Long-term memory covers stable autobiographical and relational knowledge across weeks or months:
+
+- the character's identity, values, enduring boundaries, important people, routines, and formative simulated experiences;
+- durable knowledge the user deliberately shared;
+- relationship milestones, major ruptures and repairs, established inside jokes, and reliable behavioral patterns;
+- semantic summaries derived from multiple source-linked episodes;
+- the character's evolving narrative of the relationship, including uncertainty and revisions.
+
+Long-term memory is durable, not infallible. Each belief carries confidence, provenance, first-observed and last-confirmed times, contradiction links, and sensitivity. The character can say they are unsure or ask again; it must not confidently invent forgotten facts.
+
+### 10.4 Cross-cutting memory types
+
+Each tier can contain:
+
+1. Transcript memory for exact conversation evidence.
+2. Episodic memory for concrete events and emotional consequences.
 3. Semantic self-memory for stable facts and preferences.
-4. Relational belief memory for hypotheses about the user with supporting and contradicting evidence.
-5. Prospective memory for promises, plans, anticipated dates, and unresolved loops.
+4. Relational belief memory for hypotheses about the user.
+5. Prospective memory for promises, plans, and anticipated dates.
 6. Style memory for sanitized linguistic examples.
 
-Retrieval starts with deterministic filters for recency, people, promises, and open loops. Semantic retrieval is optional and must not replace exact evidence. Summarization is typed and source-linked so a false summary can be traced and corrected.
+A `MemoryRecord` contains tier, kind, content summary, source event IDs, confidence, salience, emotional weight, sensitivity, created time, last-confirmed time, last-recalled time, recall count, decay policy, and contradiction links.
+
+### 10.5 Consolidation
+
+Consolidation runs at conversation closure, sleep boundaries, meaningful milestones, and resume catch-up:
+
+1. Select salient short-term items using deterministic evidence.
+2. Ask a structured model only when semantic synthesis is necessary.
+3. Create or update a source-linked medium-term episode.
+4. Promote a stable long-term belief only after sufficient evidence or explicit user importance.
+5. Preserve contradictions instead of overwriting history silently.
+6. Emit a `MemoryConsolidated` event so every durable memory can be audited.
+
+### 10.6 Retrieval and natural forgetting
+
+Retrieval first filters by open loops, people, promises, temporal relevance, and source evidence. It then ranks by recency, salience, confidence, emotional match, and semantic similarity. Vector retrieval is optional and cannot replace exact evidence.
+
+The character should not have photographic recall. Low-salience details can become inaccessible, but the database retains source events according to user retention settings. Behavioral forgetting changes retrieval strength; destructive deletion remains a separate user-controlled privacy action. Generated summaries are typed and source-linked so false consolidation can be traced and corrected.
+
+### 10.7 Long-absence behavior
+
+On resume after hours or days, the catch-up engine:
+
+1. Advances sleep, routine, scheduled life, emotional decay, and promise deadlines in order.
+2. Consolidates memories at crossed sleep boundaries.
+3. Expires low-salience conversational fragments.
+4. Preserves high-salience commitments and unresolved ruptures.
+5. Generates no more than the messages the running product could honestly deliver for its configured mode.
+6. Re-enters with context appropriate to elapsed time; it does not continue the previous sentence as if no time passed.
+
+In foreground-only CLI mode, no message is backdated or presented as previously delivered. A future local daemon may deliver real notifications while the app UI is closed.
+
+### 10.8 RAG, GraphRAG, Agentic RAG, and OAG decision
+
+The selected architecture is **Temporal Ontology Hybrid Retrieval**, implemented as a project-owned memory layer rather than a dependency on one RAG framework.
+
+The term OAG is ambiguous in the ecosystem. In this design it means **Ontology-Augmented Generation**: the model receives typed domain objects, relations, logic, and permitted actions in addition to retrieved text. It does not mean the Open Academic Graph.
+
+#### Retrieval by memory horizon
+
+| Horizon | Primary retrieval | Why |
+| --- | --- | --- |
+| Short-term | Exact recent turns, active scene, open-loop and reply-target lookup | Semantic search would add latency and can omit the immediately relevant sentence. |
+| Medium-term | SQLite filters + FTS5/BM25 + optional vector similarity + time/salience reranking | Recent episodes often require both exact names/phrases and paraphrase matching. |
+| Long-term | Typed temporal ontology edges + source-linked summaries + bounded graph traversal | Durable facts change over time and need provenance, contradiction, and multi-hop relationship context. |
+| Review/counterfactual | Deterministic retrieval plan with an optional agentic second pass | Complex questions may need several targeted retrievals, but ordinary chat should not pay this cost or accept its nondeterminism. |
+
+#### Storage and index implementation
+
+The vertical slice uses one SQLite database:
+
+- immutable event and transcript tables;
+- materialized current-state and open-loop tables;
+- `memory_records` with time horizon, kind, provenance, confidence, salience, and decay policy;
+- `entities` and `temporal_edges` with `valid_from`, `valid_to`, `learned_at`, `invalidated_at`, and source event IDs;
+- SQLite FTS5 indexes for exact language, names, inside jokes, and BM25 ranking;
+- an `EmbeddingIndex` interface, disabled by default in the no-key demo;
+- optional `sqlite-vec` implementation after retrieval baselines prove that embeddings improve recall enough to justify packaging it.
+
+The expected memory scale for one person is small. Faiss, a remote vector database, Neo4j, or a managed graph service is unnecessary in the default installation. The interfaces remain replaceable for future multi-character or hosted deployments.
+
+#### Query planner
+
+The application, not an unconstrained agent, selects a bounded retrieval recipe from typed intent:
+
+1. Always load active scene, recent exact turns, due promises, current affect causes, and open loops.
+2. Add FTS5 retrieval when the message contains a person, place, quoted phrase, plan, or earlier topic.
+3. Add semantic retrieval when paraphrase or emotional similarity is likely to matter and an embedding provider is configured.
+4. Traverse a maximum-depth temporal graph path when the query concerns how people, promises, beliefs, or events connect.
+5. Use an agentic follow-up retrieval only in review mode when evidence remains insufficient.
+6. Merge, deduplicate, and rerank by temporal validity, provenance confidence, open-loop priority, salience, recency, lexical score, and semantic score.
+7. Fit the result to a strict context budget and preserve source IDs for later explanation.
+
+The planner must be deterministic for the same state, query, clock, and seed. The model may propose a retrieval intent but cannot directly issue arbitrary database queries or silently rewrite memory.
+
+#### Why the alternatives are not the default
+
+- **Plain vector RAG alone:** useful for paraphrases, but weak at exact chronology, negation, superseded facts, promises, and current-versus-past truth.
+- **Microsoft GraphRAG:** designed for extracting entities, communities, and global summaries from document corpora. Its global search is resource-intensive, indexing is relatively expensive, and the official repository is now largely in maintenance mode. It is a poor fit for a small, continuously changing private conversation.
+- **Graphiti:** its incremental temporal facts, provenance, invalidation, hybrid retrieval, and custom entity types closely match this product. Its semantics are the best external reference and a future optional adapter is valuable. Requiring Neo4j/FalkorDB/Neptune and LLM extraction would make the default local CLI too heavy, so the vertical slice implements the necessary subset in SQLite first.
+- **HippoRAG 2:** strong for associative multi-hop retrieval and continual document knowledge. It is a valuable long-memory benchmark, but its primary problem is knowledge-base question answering rather than transactional relationship state, scheduled obligations, and bi-temporal truth.
+- **Agentic RAG on every turn:** lets an LLM decide when and how to retrieve, but adds variable latency, cost, and failure modes. It is reserved for post-session analysis or ambiguous multi-hop review.
+- **Ontology-Augmented Generation:** adopted as a design principle. `Character`, `Person`, `Event`, `Promise`, `Boundary`, `Belief`, `Relationship`, `Routine`, and `Place` are typed objects; operations such as revise belief, resolve promise, close loop, and schedule event are validated domain actions. No Palantir dependency is required.
+
+#### Framework adoption rule
+
+An external retrieval framework is added only when an evaluation suite shows a material gain over the SQLite baseline in temporal accuracy, evidence recall, contradiction handling, or latency. Popularity and benchmark results on large document QA are not sufficient evidence for this conversational memory workload.
 
 ## 11. Safety and Privacy
 
@@ -242,6 +392,10 @@ Retrieval starts with deterministic filters for recency, people, promises, and o
 - The system never claims a message was sent if rendering or persistence failed.
 - SQLite migrations create a backup and run transactionally. A failed migration leaves the prior database readable.
 - Scheduler restarts use persisted due events and deterministic catch-up, preventing duplicate proactive messages.
+- Resume catch-up is capped and coalesces repetitive low-value ticks, so a month offline cannot trigger thousands of events or messages.
+- Time-zone changes preserve absolute event ordering while recomputing local routine windows.
+- Memory consolidation is idempotent by source-event set. A retry cannot create duplicate durable memories.
+- Failed consolidation leaves source events intact and retries later; it never replaces a known fact with an unvalidated summary.
 - Missing optional models degrade to explicit local/demo behavior, not fabricated high-fidelity results.
 - Unsafe or privacy-leaking output is withheld and recorded as a validation failure without teaching the character that it sent the text.
 
@@ -253,7 +407,10 @@ Human-likeness is a release gate, not a subjective README claim.
 
 - Schema and migration tests.
 - Event ordering, idempotency, snapshot, and catch-up tests.
+- Circadian, weekly, conversation, emotion, and relationship-cycle transition tests.
+- Short-, medium-, and long-term promotion, decay, contradiction, provenance, and retrieval tests.
 - Emotion decay, unresolved-loop, promise, belief-evidence, and boundary invariants.
+- Resume cases after 20 minutes, one sleep cycle, three days, a time-zone change, and thirty days.
 - Silence, delay, fragmented burst, repair, and relationship-close actions.
 - Privacy redaction and deletion tests.
 - Compatibility tests for current v2 commands.
@@ -273,6 +430,8 @@ Metrics include:
 - calibration under ambiguous signals;
 - assistant-language rate;
 - human-rated naturalness, surprise-with-plausibility, and desire to continue.
+
+Retrieval-specific metrics include recall@k for planted memories, temporal-validity accuracy, superseded-fact rejection, promise/open-loop recall, multi-hop evidence completeness, provenance precision, sensitive-memory leakage, context-token cost, and p50/p95 latency.
 
 Initial release thresholds:
 
@@ -324,6 +483,9 @@ The cycle is complete when:
 - `crush v3 demo` runs First Spark without an API key using a deterministic fake provider.
 - A configured OpenAI-compatible provider can run the same scenario through the typed provider interface; the deterministic fake provider remains the offline test oracle.
 - The character maintains private structured mind, relationship evidence, life state, and prospective memory across at least 30 events.
+- The character preserves short-term context within an exchange, consolidates a meaningful episode across a sleep cycle, recalls a durable fact after a multi-day gap, and expresses uncertainty about a forgotten low-salience detail.
+- Exact, FTS5, optional semantic, and temporal-graph retrieval each have planted-memory tests; the merged retriever must reject a superseded fact and return source event IDs.
+- Resuming after eight hours and after three days produces ordered, bounded catch-up with appropriate time awareness and no assumption that ordinary absence means rejection.
 - The character can deliberately choose silence, delay, a fragmented message burst, a later proactive message, repair, and relationship close.
 - Closing and resuming the CLI performs deterministic catch-up without pretending continuous execution.
 - A review identifies a belief change, summarizes withheld intent without raw reasoning, and creates one counterfactual branch.
@@ -340,3 +502,14 @@ The cycle is complete when:
 - Random drama introduced solely to create emotional dependence.
 - A large multi-agent graph before the vertical slice proves that multiple model roles improve measured naturalness.
 - A cloud-first rewrite before local correctness, privacy, and evaluation exist.
+
+## 19. Technical References
+
+- [SQLite FTS5 and BM25](https://www.sqlite.org/fts5.html)
+- [sqlite-vec](https://github.com/asg017/sqlite-vec)
+- [Microsoft GraphRAG query modes](https://github.com/microsoft/graphrag/blob/main/docs/query/overview.md)
+- [Microsoft GraphRAG project status and cost warning](https://github.com/microsoft/graphrag)
+- [Graphiti temporal context graph](https://github.com/getzep/graphiti)
+- [HippoRAG 2](https://github.com/OSU-NLP-Group/HippoRAG)
+- [LangGraph agentic RAG](https://docs.langchain.com/oss/python/langgraph/agentic-rag)
+- [Palantir Ontology system](https://www.palantir.com/docs/foundry/architecture-center/ontology-system)
