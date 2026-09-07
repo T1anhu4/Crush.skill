@@ -9,14 +9,14 @@ from .weflow.builders import (
     build_target_reply_examples,
     count_days,
 )
-from .weflow.parser import detect_weflow_format, parse_weflow_export
+from .weflow.parser import detect_weflow_format as _detect_weflow_format, parse_weflow_export
 from .weflow.profile import build_persona_profile
 from .weflow.timeline import build_timeline_summary
 from .weflow.types import WeFlowBundle
 
 
 def detectWeFlowFormat(data: Any) -> bool:
-    return detect_weflow_format(data)
+    return _detect_weflow_format(data)
 
 
 def parseWeFlowExport(source: str | Path | Dict[str, Any], privacy_mode: str = "safe") -> Dict[str, Any]:

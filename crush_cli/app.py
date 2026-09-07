@@ -19,6 +19,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 
+from crush_cli.motion import Spinner
+
 try:
     import termios
     import tty
@@ -333,11 +335,13 @@ class C:
 
 
 def color(text: str, code: str, enabled: bool = True) -> str:
+    enabled = enabled and "NO_COLOR" not in os.environ and os.environ.get("TERM", "").lower() != "dumb"
     return f"{code}{text}{C.reset}" if enabled else text
 
 
 def visible_len(text: str) -> int:
-    return len(text)
+    import unicodedata
+    return sum(0 if unicodedata.combining(c) else 2 if unicodedata.east_asian_width(c) in {'W', 'F'} else 1 for c in text)
 
 
 def wrap(text: str, width: int = 78) -> str:
@@ -426,39 +430,6 @@ def animated_panel(title: str, lines: list[str], *, plain: bool) -> None:
     print(color("╰" + "─" * 56, C.rose, not plain))
 
 
-class Spinner:
-    def __init__(self, label: str, enabled: bool = True) -> None:
-        self.label = label
-        self.enabled = enabled
-        self._stop = threading.Event()
-        self._thread: threading.Thread | None = None
-
-    def __enter__(self) -> "Spinner":
-        if not self.enabled:
-            print(self.label)
-            return self
-        frames = ["◜", "◠", "◝", "◞", "◡", "◟"]
-
-        def run() -> None:
-            i = 0
-            while not self._stop.is_set():
-                sys.stdout.write("\r" + color(frames[i % len(frames)], C.cyan) + " " + self.label)
-                sys.stdout.flush()
-                time.sleep(0.08)
-                i += 1
-            sys.stdout.write("\r" + " " * (visible_len(self.label) + 4) + "\r")
-            sys.stdout.flush()
-
-        self._thread = threading.Thread(target=run, daemon=True)
-        self._thread.start()
-        return self
-
-    def __exit__(self, *_: object) -> None:
-        self._stop.set()
-        if self._thread:
-            self._thread.join(timeout=0.5)
-
-
 class ModelError(RuntimeError):
     pass
 
@@ -495,7 +466,15 @@ def load_config(config_file: Path) -> Dict[str, Any]:
 
 def save_config(config_file: Path, config: Dict[str, Any]) -> None:
     config_file.parent.mkdir(parents=True, exist_ok=True)
-    config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    import tempfile
+    fd, name = tempfile.mkstemp(prefix=".config-", dir=config_file.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        os.replace(name, config_file)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
 
 
 def import_runtime(data_dir: Path):
@@ -512,15 +491,15 @@ class ChatClient:
         provider = provider_by_id(configured_provider) if configured_provider else None
         self.api_key = (
             os.environ.get("CRUSH_CHAT_API_KEY")
-            or os.environ.get("OPENAI_API_KEY")
             or config.get("api_key", "")
+            or (os.environ.get("OPENAI_API_KEY") if configured_provider in {"", "openai"} else "")
         )
         self.provider = os.environ.get("CRUSH_CHAT_PROVIDER") or configured_provider or "openai"
         self.provider_mode = os.environ.get("CRUSH_CHAT_PROVIDER_MODE") or config.get("provider_mode") or (provider or PROVIDERS[0])["mode"]
         self.api_base = normalize_api_base(
             os.environ.get("CRUSH_CHAT_API_BASE")
-            or os.environ.get("OPENAI_API_BASE")
             or config.get("api_base")
+            or (os.environ.get("OPENAI_API_BASE") if configured_provider in {"", "openai"} else None)
             or (provider or PROVIDERS[0])["base"]
         )
         self.model = (
@@ -536,11 +515,14 @@ class ChatClient:
     def reply(self, runtime_prompt: str, user_message: str) -> str:
         if not self.api_key:
             raise RuntimeError("还没有配置模型 API Key。请使用 /setup 或 /config key <api_key>。")
-        if self.provider_mode == "anthropic":
-            return self._reply_anthropic(runtime_prompt, user_message)
-        if self.provider_mode == "gemini":
-            return self._reply_gemini(runtime_prompt, user_message)
-        return self._reply_openai(runtime_prompt, user_message)
+        try:
+            if self.provider_mode == "anthropic":
+                return self._reply_anthropic(runtime_prompt, user_message)
+            if self.provider_mode == "gemini":
+                return self._reply_gemini(runtime_prompt, user_message)
+            return self._reply_openai(runtime_prompt, user_message)
+        except (TimeoutError, KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError) as exc:
+            raise ModelError("模型请求超时或返回格式无效，请重试。") from exc
 
     def _reply_openai(self, runtime_prompt: str, user_message: str) -> str:
         req = Request(
@@ -675,7 +657,7 @@ class CrushCLI:
         self.data_dir = Path(args.data_dir or self.config.get("data_dir") or self.home / "data").expanduser()
         self.session_id = self.config.get("session_id", "default")
         self.lang = self.config.get("language", "en")
-        self.plain = bool(args.plain)
+        self.plain = bool(args.plain) or not sys.stdout.isatty() or os.environ.get("TERM", "").lower() == "dumb"
         self.once_message = args.message
         self.runtime = import_runtime(self.data_dir)
         self.client = ChatClient(self.config)
@@ -747,7 +729,13 @@ class CrushCLI:
         )
 
     def command(self, raw: str) -> bool:
-        parts = shlex.split(raw)
+        try:
+            parts = shlex.split(raw)
+        except ValueError:
+            print("命令引号未闭合，请检查后重试。")
+            return True
+        if not parts:
+            return True
         cmd = parts[0].lower()
         args = parts[1:]
         try:
@@ -1075,13 +1063,13 @@ class CrushCLI:
             print(color(self.t("runtime_preview"), C.dim, not self.plain))
             print(wrap(turn["runtime_prompt"][:1200]))
             return
-        with Spinner(self.t("spinner_reply"), enabled=not self.plain):
-            try:
+        try:
+            with Spinner(self.t("spinner_reply"), enabled=not self.plain):
                 reply = self.client.reply(turn["runtime_prompt"], message)
-            except ModelError as exc:
-                print(color(str(exc), C.red, not self.plain))
-                print(color(self.t("turn_saved_after_error"), C.dim, not self.plain))
-                return
+        except ModelError as exc:
+            print(color(str(exc), C.red, not self.plain))
+            print(color(self.t("turn_saved_after_error"), C.dim, not self.plain))
+            return
         reply = reply.strip()
         if not reply:
             print(color("Model returned an empty reply. The user message was saved; try again or switch models.", C.gold, not self.plain))
@@ -1145,8 +1133,8 @@ class CrushCLI:
         state.setdefault("pending", {})
         return state
 
-    def save_timeline_state(self, state: Dict[str, Any]) -> None:
-        self.config.setdefault("timeline", {})[self.session_id] = state
+    def save_timeline_state(self, state: Dict[str, Any], session_id: str | None = None) -> None:
+        self.config.setdefault("timeline", {})[session_id or self.session_id] = state
         self.config["session_id"] = self.session_id
         self.config["data_dir"] = str(self.data_dir)
         save_config(self.config_file, self.config)
@@ -1163,6 +1151,7 @@ class CrushCLI:
                     print(color(f"\nTimeline skipped: {exc}", C.dim, not self.plain))
 
     def maybe_proactive_message(self) -> None:
+        session_id = self.session_id
         state = self.timeline_state()
         now = time.time()
         if state.get("paused") or now < float(state.get("next_proactive_at", 0)):
@@ -1179,7 +1168,7 @@ class CrushCLI:
 
         event = self.timeline_event(state)
         timeline_runtime = import_runtime(self.data_dir)
-        prompt = timeline_runtime.run("proactive_prompt", self.session_id, {"event": event, **state})
+        prompt = timeline_runtime.run("proactive_prompt", session_id, {"event": event, **state})
         reply = self.client.reply(prompt["runtime_prompt"], event).strip()
         if not reply or reply == "__NO_MESSAGE__":
             state["next_proactive_at"] = now + self.sample_proactive_delay()
@@ -1187,13 +1176,15 @@ class CrushCLI:
             return
         timeline_runtime.run(
             "record_reply",
-            self.session_id,
+            session_id,
             {"message": event, "npc_reply": reply, "tags": ["timeline_proactive"]},
         )
         state["last_npc_at"] = time.time()
         state["pending"] = self.build_pending(reply, event, "initial")
         state["next_proactive_at"] = state["pending"]["followup_due_at"]
-        self.save_timeline_state(state)
+        self.save_timeline_state(state, session_id)
+        if self.session_id != session_id:
+            return
         with self.print_lock:
             print(color(f"\n[{self.t('time_passes')}]", C.dim, not self.plain))
             self.print_reply(reply, {"relationship_vector": self.t("timeline_waiting"), "delta": {}, "sent_at": state["last_npc_at"]})
@@ -1225,7 +1216,7 @@ class CrushCLI:
     def proactive_probability(self) -> float:
         session = self._load_session_for_timeline()
         profile = session.get("profile", {})
-        state = session.get("state", {})
+        state = {**session.get("state", {}), **self.timeline_state()}
         canonical = session.get("canonical_archetype", "experience")
         base = {
             "emotional": 0.68,
@@ -1275,6 +1266,7 @@ class CrushCLI:
         return max(20.0, random.uniform(*base) * scale)
 
     def maybe_follow_up_pending(self, state: Dict[str, Any], pending: Dict[str, Any], now: float) -> None:
+        session_id = self.session_id
         followups = int(pending.get("followup_count", 0))
         if followups >= 2 or now >= float(pending.get("expires_at", 0)):
             self.cool_down_after_ignored(state)
@@ -1285,7 +1277,7 @@ class CrushCLI:
 
         event = self.followup_event(state, pending, followups)
         timeline_runtime = import_runtime(self.data_dir)
-        prompt = timeline_runtime.run("proactive_prompt", self.session_id, {"event": event, **state, "pending": pending})
+        prompt = timeline_runtime.run("proactive_prompt", session_id, {"event": event, **state, "pending": pending})
         reply = self.client.reply(prompt["runtime_prompt"], event).strip()
         if not reply or reply == "__NO_MESSAGE__":
             pending["followup_due_at"] = now + self.sample_patience_window()
@@ -1294,7 +1286,7 @@ class CrushCLI:
             return
         timeline_runtime.run(
             "record_reply",
-            self.session_id,
+            session_id,
             {"message": event, "npc_reply": reply, "tags": ["timeline_followup"]},
         )
         pending["message"] = reply
@@ -1307,7 +1299,9 @@ class CrushCLI:
         state["pending"] = pending
         state["last_npc_at"] = now
         state["next_proactive_at"] = pending["followup_due_at"]
-        self.save_timeline_state(state)
+        self.save_timeline_state(state, session_id)
+        if self.session_id != session_id:
+            return
         with self.print_lock:
             print(color(f"\n[{self.t('time_passes')}]", C.dim, not self.plain))
             self.print_reply(reply, {"relationship_vector": self.t("timeline_waiting"), "delta": {}, "sent_at": now})
@@ -1368,8 +1362,8 @@ class CrushCLI:
         text = message.strip().lower()
         waited = max(0, int((time.time() - float(pending.get("sent_at", time.time()))) / 60))
         apology = any(word in text for word in ["抱歉", "不好意思", "刚看到", "才看到", "sorry", "sry", "ごめん"])
-        valid_busy = any(word in text for word in ["加班", "刚下班", "开会", "路上", "到家", "赶 ddl", "赶ddl", "忙完", "手机没电", "信号不好"])
-        low_priority = any(word in text for word in ["打游戏", "游戏", "刷视频", "睡着", "忘了", "懒得", "没看", "在玩", "开黑"])
+        valid_busy = any(word in text for word in ["睡着", "睡觉", "休息", "加班", "刚下班", "开会", "路上", "到家", "赶 ddl", "赶ddl", "忙完", "手机没电", "信号不好"])
+        low_priority = any(word in text for word in ["打游戏", "游戏", "刷视频", "忘了", "懒得", "没看", "在玩", "开黑"])
         care = any(word in text for word in ["想你", "怕你担心", "马上回", "刚忙完就回", "一忙完就回", "没不理你"])
         if care or (apology and valid_busy):
             return {"quality": "high_care", "waited_minutes": waited, "note": "你解释了原因并照顾到她的感受，她会觉得被重视。"}
@@ -1547,7 +1541,7 @@ class CrushCLI:
             return False
 
     def bar(self, value: float, width: int = 24) -> str:
-        normalized = max(0.0, min(100.0, value if value >= 0 else value + 100))
+        normalized = max(0.0, min(100.0, value))
         filled = int((normalized / 100.0) * width)
         return color("█" * filled, C.cyan, not self.plain) + color("░" * (width - filled), C.dim, not self.plain)
 
@@ -1558,7 +1552,15 @@ class CrushCLI:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Crush.skill standalone local CLI")
+    parser = argparse.ArgumentParser(
+        description="Crush.skill standalone local CLI",
+        epilog=(
+            "Other entry points: crush web (local web preview); "
+            "crush v3 --help (JSON CLI). "
+            "Use --plain to disable ANSI animation/colors, or "
+            "CRUSH_REDUCED_MOTION=1 for static activity feedback."
+        ),
+    )
     parser.add_argument("--session", help="Session id to open")
     parser.add_argument("--home", help="Crush local home directory (default: ~/.crush)")
     parser.add_argument("--data-dir", help="Local memory data directory")
@@ -1572,8 +1574,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Iterable[str] | None = None) -> int:
+    values = list(argv) if argv is not None else sys.argv[1:]
+    if values and values[0] == "web":
+        try:
+            from crush_core.server import main as web_main
+        except ModuleNotFoundError as exc:
+            print(f"GUI 依赖尚未安装 ({exc.name})。请从源码目录运行：pip install -r requirements-web.txt")
+            return 1
+        sys.argv = [sys.argv[0], *values[1:]]
+        web_main()
+        return 0
+    if values and values[0] == "v3":
+        from crush_core.__main__ import main as core_main
+        sys.argv = [sys.argv[0], *values[1:]]
+        return core_main()
     parser = build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    args = parser.parse_args(values)
     if args.command:
         return run_headless(args)
     return CrushCLI(args).run()

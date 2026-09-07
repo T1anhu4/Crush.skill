@@ -375,14 +375,15 @@ class MemoryEngine:
             FROM episodes
             WHERE session_id=?
             ORDER BY id DESC
-            LIMIT 120
             """,
             (session_id,),
         ).fetchall()
 
         scored = []
         for row in rows:
-            vector = json.loads(row["vector_json"])
+            # Legacy persisted vectors used Python's per-process hash seed.
+            # Recompute while reading so existing databases remain searchable.
+            vector = self._text_to_vector(row["content"])
             cosine = self._cosine(query_vec, vector)
             tokens = set(self._tokenize(row["content"]))
             overlap = len(tokens & query_tokens) / max(1, len(query_tokens))
@@ -605,13 +606,12 @@ class MemoryEngine:
             FROM memory_artifacts
             WHERE session_id=? AND artifact_type=?
             ORDER BY id DESC
-            LIMIT 400
             """,
             (session_id, artifact_type),
         ).fetchall()
         scored = []
         for row in rows:
-            vector = json.loads(row["vector_json"])
+            vector = self._text_to_vector(row["text"])
             cosine = self._cosine(query_vec, vector)
             tokens = set(self._tokenize(row["text"]))
             overlap = len(tokens & query_tokens) / max(1, len(query_tokens))
@@ -687,12 +687,15 @@ class MemoryEngine:
         self.conn.commit()
 
     def _tokenize(self, text: str) -> List[str]:
-        return re.findall(r"[\w\u4e00-\u9fff]+", text.lower())
+        words = re.findall(r"[a-z0-9_]+", text.lower())
+        for run in re.findall(r"[\u4e00-\u9fff]+", text):
+            words.extend(run[i:i + 2] for i in range(max(1, len(run) - 1)))
+        return words
 
     def _text_to_vector(self, text: str, dims: int = 256) -> Dict[str, float]:
         counts: Dict[int, float] = {}
         for token in self._tokenize(text):
-            idx = hash(token) % dims
+            idx = int.from_bytes(hashlib.blake2b(token.encode(), digest_size=8).digest(), "big") % dims
             counts[idx] = counts.get(idx, 0.0) + 1.0
 
         norm = math.sqrt(sum(v * v for v in counts.values()))

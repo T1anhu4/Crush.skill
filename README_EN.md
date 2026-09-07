@@ -71,6 +71,19 @@ A real person may not reply yet, think of you only after finishing something, ho
 
 ## v3 Living Mind: In Development
 
+> **New source-only GUI preview**: local chat, persistent scheduling, source-linked memory, and branching reviews are now available. See the [setup guide and limitations](docs/gui-preview.md). Demo mode uses fixed branches; live chat needs your model connection. Long-term conversational quality is not yet validated. The stable release remains v2.4.15.
+
+This increment adds recoverable installer upgrades, stricter import privacy, an explicit shared v3 CLI/Skill adapter, and legacy migration through **read-only preview → explicit confirmation → paused session**. Live conversations can extend fictional daily life after the authored arcs end. See the [release checklist](docs/release-readiness.md) and [synthetic longitudinal evaluation](docs/evaluation.md). Engineering checks are not evidence of sustained human-like conversation.
+
+### What can you use now?
+
+- **GUI chat:** three fictional adult characters, real/demo clocks, quotes and withdrawal, memory sidebar, pause/resume and branching reviews.
+- **Source-aware memory:** explicit preferences survive generation failures; older evidence cannot overwrite corrections. Live drafts go through a separate fact-editing request before entering chat history.
+- **Terminal feedback:** a single-line star-pulse animation with stage labels and elapsed time, narrow-terminal clipping and cleanup on failure. `--plain` and `CRUSH_REDUCED_MOTION=1` provide static output. Inspired by modern agent CLIs, not a claim to reproduce the entire Claude Code terminal interface.
+- **Skill/CLI compatibility:** existing interactive chat, imports, model configuration and reports remain available. Explicit v3 JSON commands and the packaged Skill adapter share the GUI core without silently migrating old sessions.
+
+Latest synthetic live-model run: **15/15 turns delivered; automated checks passed**, spanning days 1, 3, 14 and 30. See the [evaluation record and remaining issues](docs/2026-09-07-live-evaluation.md). This is neither continuous month-long usage nor independent human validation; factual editing can still miss errors. Live turns normally use two model requests, at most three per processing attempt, with corresponding latency and cost.
+
 v3 introduces an event-driven life → cognition → action → memory loop:
 
 ```text
@@ -90,9 +103,10 @@ What you did → time and life events → multiple hypotheses → emotion / beli
 Progress:
 
 - [x] The Living Mind architecture, time and memory model, Temporal Ontology Hybrid Retrieval approach, implementation plan, and privacy boundaries are complete.
-- [ ] A runnable First Spark first-meeting scenario.
-- [ ] Tests covering 30+ events, sleep, and multi-day interruption and recovery.
-- [ ] A no-key demo, public evaluation, and blinded pilot.
+- [x] Runnable first-meeting scenarios, no-key fixed-branch demo and live-model entry points.
+- [x] Automated regression coverage for sleep, cross-day memory, withdrawal, branching, restart, installation and privacy.
+- [x] Synthetic longitudinal harness and live-model evaluation records.
+- [ ] Long-term blinded evaluation across all characters, complete host-native model integration and a complete v3 interactive TUI.
 
 v3 will not claim that a character is conscious or that it reveals a real person's private thoughts. It is an honestly labeled causal relationship simulator in development, not a real person's inner mind.
 
@@ -102,19 +116,29 @@ v3 will not claim that a character is conscious or that it reveals a real person
 |---------|-----|-------|-------------|
 | **Agent Skill** | Claude Code, OpenClaw, QwenPaw, Codex, Cursor users | `Crush.skill/execute.py` | Host agents call actions, receive JSON and hidden runtime prompts, then generate natural persona replies. |
 | **Standalone CLI** | Users who want local chat, import, and practice | `crush_cli/app.py` | Users run `crush`, configure models, import records, chat, and view reports in a terminal. |
+| **v3 Agent / JSON CLI** | Scripts and agents using the new core | `crush v3` / `Crush.skill/v3.py` | Explicit session IDs, idempotent sends, scoped scheduling, pause, migration, export and branching. JSON stdout stays animation-free. |
+| **Local GUI preview** | Users who prefer a chat window | `crush web` | Requires GUI dependencies and a frontend build from source. |
 
 Both surfaces share the same runtime, state engine, memory system, and distillation report.
+
+That shared runtime refers to the legacy Skill and interactive CLI. The v3 GUI, JSON CLI and explicit Skill adapter share the separate `crush_core`. Legacy `/chat` does not silently switch engines, and a host subscription does not automatically supply v3 model API access.
 
 ---
 
 ## One-Minute Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/T1anhu4/Crush-skill/2.4/scripts/install_cli.sh | bash
-crush
+git clone --branch codex/v3-living-mind https://github.com/T1anhu4/Crush-skill.git
+cd Crush-skill
+bash scripts/install_cli.sh
+~/.crush/bin/crush
 ```
 
 On first interactive launch, the CLI opens a model setup wizard: choose a provider, enter a model name, then enter your API key.
+
+This installs the development branch from a complete checkout, not a stable-release upgrade. `curl | bash` is unsupported. Use `--force` to preserve the previous app and launcher under `backups/` before replacement; user data is retained. `--offline` skips dependency downloads and uses lightweight fallbacks. GUI dependencies and frontend build remain separate; follow the [preview guide](docs/gui-preview.md).
+
+Safe imports remove sender identifiers and media paths and apply local redaction patterns, not guaranteed anonymization. Inspect unmarked names and indirect clues before sharing or model transmission. Full mode needs explicit selection; realism is not consent. Existing imports are not retroactively scrubbed: delete the corresponding import and import again.
 
 Common commands:
 

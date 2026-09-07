@@ -9,3 +9,7 @@ Crush.skill/dist/
 node_modules/
 .claude/skills/
 .worktrees/
+web/dist/
+.pytest_cache/
+.playwright-cli/
+output/

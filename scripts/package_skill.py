@@ -15,13 +15,13 @@ EXCLUDED_PARTS = {
     "examples",
 }
 
-EXCLUDED_SUFFIXES = {".pyc", ".sqlite3"}
+EXCLUDED_SUFFIXES = {".pyc", ".sqlite3", ".sqlite", ".db", ".log"}
 
 
 
 def should_skip(path: Path) -> bool:
     for part in path.parts:
-        if part in EXCLUDED_PARTS:
+        if part in EXCLUDED_PARTS or part.startswith('.'):
             return True
     if path.name.startswith("."):
         return True
@@ -35,12 +35,16 @@ def build_zip(target: Path) -> None:
     DIST_DIR.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for file_path in sorted(SKILL_DIR.rglob("*")):
-            if file_path.is_dir():
+            if file_path.is_dir() or file_path.is_symlink() or any(p.is_symlink() for p in file_path.parents if p!=SKILL_DIR):
                 continue
             rel = file_path.relative_to(SKILL_DIR)
             if should_skip(rel):
                 continue
             zf.write(file_path, arcname=str(rel))
+        for file_path in sorted((ROOT/'crush_core').rglob('*.py')):
+            if file_path.is_symlink() or any(p.is_symlink() for p in file_path.parents) or should_skip(file_path.relative_to(ROOT)):
+                continue
+            zf.write(file_path,arcname=str(file_path.relative_to(ROOT)))
 
 
 

@@ -263,10 +263,22 @@ class CrushSkillRuntime:
         source = payload.get("source_text") or payload.get("source_file") or payload.get("path") or ""
         if not source:
             raise ValueError("weflow_import requires payload.source_text or payload.source_file")
-        privacy_mode = "full" if str(payload.get("privacy_mode") or payload.get("privacy") or "").lower() in {"full", "raw", "private"} or payload.get("full") else "safe"
+        from engines.weflow.privacy import validate_privacy_mode
+
+        selections = [payload[key] for key in ("privacy_mode", "privacy") if key in payload]
+        for selection in selections:
+            validate_privacy_mode(selection)
+        if "full" in payload:
+            if not isinstance(payload["full"], bool):
+                raise ValueError("full 必须为布尔值；保留原始信息需要明确选择 full=true。")
+            selections.append("full" if payload["full"] else "safe")
+        if len(set(selections)) > 1:
+            raise ValueError("隐私选项冲突：请只选择 safe 或 full。")
+        privacy_mode = selections[0] if selections else "safe"
         bundle = buildMemoryFromImportedChat(source, privacy_mode=privacy_mode)
         save_result = self.memory.sqlite.save_weflow_bundle(session_id, bundle)
         import_id = save_result.get("import_id", bundle.import_id)
+        existing_session = self.memory.sqlite.load_session(session_id)
         profile_data = bundle.persona_profile
         identity_ctx = profile_data.get("identity_context", {})
         expression = profile_data.get("expression", {})
@@ -299,6 +311,8 @@ class CrushSkillRuntime:
         }
         persona_obj = self.persona.from_custom(persona_dict)
         state = CoreState(favorability=35.0, tension=22.0, exploration=35.0, defense_level=18.0).normalize()
+        if existing_session:
+            state = CoreState.from_dict(existing_session["state"])
         profile = RelationshipProfile(
             archetype="weflow_style",
             attachment_style="Secure",
@@ -345,12 +359,33 @@ class CrushSkillRuntime:
         import_id = payload.get("import_id", "")
         if not import_id:
             raise ValueError("delete_import requires payload.import_id")
+        records = self.memory.sqlite.get_import_status(session_id)
+        if not any(item["import_id"] == import_id for item in records):
+            raise ValueError("导入记录不存在。")
         self.memory.sqlite.delete_import(session_id, import_id)
+        self._delete_profile_files(session_id, import_id)
+        if not self.memory.sqlite.get_import_status(session_id):
+            self.memory.sqlite.conn.execute("UPDATE sessions SET persona_json=NULL WHERE session_id=? AND canonical_archetype='weflow_style'", (session_id,))
+            self.memory.sqlite.conn.commit()
         self.memory.sqlite.update_summary(session_id)
         return {"success": True, "action": "delete_import", "session_id": session_id, "import_id": import_id, "deleted": True}
 
+    def _delete_profile_files(self, session_id: str, import_id: str | None = None) -> None:
+        root = (DATA_DIR / "weflow").resolve()
+        directory = (root / session_id / import_id).resolve() if import_id else (root / session_id).resolve()
+        if root not in directory.parents:
+            raise ValueError("无效的会话路径。")
+        for name in ("persona_profile.json", "persona_profile.md"):
+            files = [directory / name] if import_id else directory.glob("*/" + name)
+            for path in files:
+                if path.is_file() and root in path.resolve().parents:
+                    path.unlink()
+
     def _write_weflow_profile_files(self, session_id: str, bundle: Any, import_id: str | None = None) -> None:
         out_dir = DATA_DIR / "weflow" / session_id / (import_id or bundle.import_id)
+        root = (DATA_DIR / "weflow").resolve()
+        if root not in out_dir.resolve().parents:
+            raise ValueError("无效的会话路径。")
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "persona_profile.json").write_text(json.dumps(bundle.persona_profile, ensure_ascii=False, indent=2), encoding="utf-8")
         (out_dir / "persona_profile.md").write_text(bundle.persona_profile_md, encoding="utf-8")
@@ -417,6 +452,16 @@ class CrushSkillRuntime:
         message = payload.get("message", "").strip()
         if not message:
             raise ValueError("chat_turn requires payload.message")
+        if payload.get("mode") == "review":
+            session = self.memory.sqlite.load_session(session_id)
+            if not session:
+                raise ValueError("请先创建一个会话。")
+            context = self.memory.sqlite.build_memory_context(session_id, message)
+            context["mode"] = "review"
+            context["recent_turns"] = list(reversed(self.memory.sqlite.get_recent_episodes(session_id, 12)))
+            prompt = self.persona._build_weflow_runtime_prompt(self._load_persona_for_session(session), session["state"], context, message)
+            return {"success": True, "action": "review", "session_id": session_id, "state": session["state"],
+                    "delta": {}, "tags": [], "memory_context": context, "runtime_prompt": prompt}
         session = self.memory.sqlite.load_session(session_id)
         boot_note = ""
         if not session:
@@ -462,7 +507,7 @@ class CrushSkillRuntime:
             {"role": item.get("role", ""), "content": item.get("content", "")[:240]}
             for item in recent_turns
         ]
-        memory_ctx["mode"] = payload.get("mode") or self._infer_chat_mode(message)
+        memory_ctx["mode"] = payload.get("mode") or "companion"
         memory_ctx["pragmatics"] = {
             "surface_intent": analysis.surface_intent,
             "subtext": analysis.subtext,
@@ -587,6 +632,7 @@ class CrushSkillRuntime:
         return {"success": True, "action": "list_sessions", "sessions": sessions}
 
     def delete_session(self, session_id: str, payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        self._delete_profile_files(session_id)
         self.memory.sqlite._delete_session(session_id)
         return {"success": True, "action": "delete_session", "session_id": session_id,
                 "message": f"会话 '{session_id}' 已删除。"}
@@ -598,7 +644,7 @@ class CrushSkillRuntime:
         if session:
             profile = session.get("profile", {})
             name = profile.get("archetype", session_id)
-        self.memory.sqlite._delete_session(session_id)
+        self.delete_session(session_id)
         message = (
             f"你已经放下了「{name}」。\n\n"
             "每一段相遇都有它的意义。它教会了你一些东西，让你更了解自己，"

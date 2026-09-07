@@ -1,5 +1,15 @@
 .PHONY: bootstrap test package package-cli install-cli clean install-claude install-openclaw install-qwenpaw release
 
+.PHONY: web web-build test-v3
+web:
+	.venv/bin/python -m crush_core.server
+
+web-build:
+	npm --prefix web run build
+
+test-v3:
+	.venv/bin/python -m pytest tests -q
+
 bootstrap:
 	bash scripts/bootstrap.sh
 

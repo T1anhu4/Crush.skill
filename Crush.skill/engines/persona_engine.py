@@ -366,6 +366,9 @@ class PersonaEngine:
             return "\n".join(lines) or "- 暂无"
 
         profile_text = memory_ctx.get("persona_profile_text") or "暂无明确风格卡，按微信短消息自然回复。"
+        if mode != "review":
+            profile_text += "\n当前关系状态（仅用于行为，不朗读分数）: " + json.dumps(state, ensure_ascii=False)
+            profile_text += "\n人格与边界: " + json.dumps(persona.to_dict(), ensure_ascii=False)
         profile_payload = memory_ctx.get("persona_profile") or {}
         privacy_mode = (profile_payload.get("safety") or {}).get("privacy_mode", "safe")
         full_private = privacy_mode == "full"

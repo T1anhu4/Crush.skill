@@ -5,6 +5,7 @@ from collections import Counter
 from typing import Any, Dict, List, Tuple
 
 from .builders import infer_style_tags
+from .privacy import SAFE_PRIVACY_WARNING
 from .types import NormalizedMessage
 
 
@@ -55,7 +56,7 @@ def build_persona_profile(
             "role": "fictionalized_wechat_companion",
             "source": "full_private_weflow_import" if privacy_mode == "full" else "sanitized_style_samples",
             "must_not_claim_real_person": True,
-            "privacy": "local full import; may use names/places/media from private memory" if privacy_mode == "full" else "no real name, wxid, avatar, phone, address, school, company, source XML",
+            "privacy": "local full import; may use names/places/media from private memory" if privacy_mode == "full" else SAFE_PRIVACY_WARNING,
             "privacy_mode": privacy_mode,
         },
         "identity_context": {

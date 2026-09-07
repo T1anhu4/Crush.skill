@@ -5,12 +5,14 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from .privacy import (
+    SAFE_PRIVACY_WARNING,
     media_placeholder,
     normalize_message_type,
     sanitize_session,
     sanitize_text,
     split_quote,
     stable_hash,
+    validate_privacy_mode,
 )
 from .types import NormalizedMessage
 
@@ -78,6 +80,9 @@ def _local_emoji_path(md5: str, base_dir: Path | None) -> str:
 
 
 def extract_media(row: Dict[str, Any], msg_type: str, base_dir: Path | None, privacy_mode: str) -> Dict[str, Any]:
+    validate_privacy_mode(privacy_mode)
+    if privacy_mode == "safe":
+        return {}
     media: Dict[str, Any] = {}
     content = str(row.get("content") or "")
     if msg_type == "emoji":
@@ -116,6 +121,7 @@ def media_content_label(msg_type: str, media: Dict[str, Any], privacy_mode: str)
 
 
 def normalize_weflow_messages(data: Dict[str, Any], import_id: str, *, privacy_mode: str = "safe", base_dir: Path | None = None) -> tuple[List[NormalizedMessage], Dict[str, int]]:
+    validate_privacy_mode(privacy_mode)
     messages = []
     stats = {"raw": len(data.get("messages", [])), "me": 0, "target": 0, "media_or_system": 0, "redacted": 0, "emoji": 0, "image": 0, "video": 0, "voice": 0}
     seen = set()
@@ -162,8 +168,8 @@ def normalize_weflow_messages(data: Dict[str, Any], import_id: str, *, privacy_m
                 raw_type=str(row.get("type", "")),
                 source_local_id=source_local_id,
                 content_hash=content_hash,
-                sender_display_name=str(row.get("senderDisplayName") or ""),
-                sender_username=str(row.get("senderUsername") or ""),
+                sender_display_name=str(row.get("senderDisplayName") or "") if privacy_mode == "full" else "",
+                sender_username=str(row.get("senderUsername") or "") if privacy_mode == "full" else "",
                 media=media,
             )
         )
@@ -171,6 +177,7 @@ def normalize_weflow_messages(data: Dict[str, Any], import_id: str, *, privacy_m
 
 
 def parse_weflow_export(source: str | Path | Dict[str, Any], *, privacy_mode: str = "safe") -> Dict[str, Any]:
+    validate_privacy_mode(privacy_mode)
     data, raw, base_dir = load_weflow_source(source)
     file_hash = stable_hash(raw, "file_")
     import_id = stable_hash(file_hash + "|" + str(data.get("session", {}).get("lastTimestamp", "")), "wf_")
@@ -178,6 +185,7 @@ def parse_weflow_export(source: str | Path | Dict[str, Any], *, privacy_mode: st
     messages, stats = normalize_weflow_messages(data, import_id, privacy_mode=privacy_mode, base_dir=base_dir)
     stats["redacted"] += redacted_session
     stats["privacy_mode"] = privacy_mode
+    stats["privacy_warning"] = SAFE_PRIVACY_WARNING if privacy_mode == "safe" else "full 保留原始身份信息和媒体路径，仅适用于用户明确选择的私有导入。"
     if not messages:
         raise ValueError("WeFlow JSON 中没有可用消息：文本为空或全部被过滤。")
     return {
